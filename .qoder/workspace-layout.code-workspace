@@ -1,0 +1,104 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "workbench.editorAssociations": {
+      "*.md": "default"
+    },
+    // Запрет редакторов в окнах KimiCode
+    "workbench.editor.enablePreview": false,
+    "workbench.editor.enablePreviewFromQuickOpen": false,
+    "workbench.editor.closeEmptyGroups": false,
+    "workbench.editor.revealIfOpen": true,
+    "workbench.editor.showTabs": true,
+    "workbench.editor.limit.enabled": true,
+    "workbench.editor.limit.perEditorGroup": true,
+    "workbench.editor.limit.value": 1,
+    // ЖЕСТКАЯ фиксация KimiCode панелей
+    "workbench.editor.closeEmptyGroups": false,
+    "workbench.editor.revealIfOpen": true,
+    "workbench.editor.showTabs": "multiple",
+    "workbench.editor.tabActionLocation": "right",
+    "workbench.editor.pinnedTabSizing": "normal",
+    "workbench.editor.splitSizing": "distribute",
+    // Полная блокировка перемещения
+    "workbench.layoutControl.enabled": false,
+    "workbench.layoutControl.type": "menu",
+    "workbench.activityBar.visible": true,
+    "workbench.statusBar.visible": true,
+    // Фиксированные размеры панелей
+    "workbench.panel.opensMaximized": "preserve",
+    "workbench.panel.defaultLocation": "bottom",
+    "window.title": "${dirty}${activeEditorShort}${separator}${rootName}${separator}QODER Layout",
+    "workbench.colorTheme": "Default Dark+",
+    "workbench.iconTheme": "vs-seti"
+  },
+  "layout": {
+    "left": [
+      {
+        "type": "explorer",
+        "visible": true,
+        "collapsed": false
+      }
+    ],
+    "center": [
+      {
+        "groups": [
+          {
+            "views": [
+              {
+                "id": "kimi-code.chat-1",
+                "name": "Kimi Code 1",
+                "when": "kimi-code.active"
+              }
+            ],
+            "size": 0.33,
+            "locked": true
+          },
+          {
+            "views": [
+              {
+                "id": "kimi-code.chat-2", 
+                "name": "Kimi Code 2",
+                "when": "kimi-code.active"
+              }
+            ],
+            "size": 0.33,
+            "locked": true
+          },
+          {
+            "views": [
+              {
+                "id": "kimi-code.chat-3",
+                "name": "Kimi Code 3", 
+                "when": "kimi-code.active"
+              }
+            ],
+            "size": 0.34,
+            "locked": true
+          }
+        ],
+        "locked": true
+      }
+    ],
+    "bottom": [
+      {
+        "type": "terminal",
+        "visible": true,
+        "locked": true
+      },
+      {
+        "type": "problems",
+        "visible": true,
+        "locked": true
+      }
+    ],
+    "panel": {
+      "position": "bottom",
+      "size": 0.3
+    }
+  }
+}

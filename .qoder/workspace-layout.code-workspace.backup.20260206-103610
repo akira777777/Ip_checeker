@@ -1,0 +1,68 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "workbench.editorAssociations": {
+      "*.md": "default"
+    },
+    // Запрет редакторов в окнах KimiCode
+    "workbench.editor.enablePreview": false,
+    "workbench.editor.enablePreviewFromQuickOpen": false,
+    "workbench.editor.closeEmptyGroups": false,
+    "workbench.editor.revealIfOpen": true,
+    "workbench.editor.showTabs": true,
+    "workbench.editor.limit.enabled": true,
+    "workbench.editor.limit.perEditorGroup": true,
+    "workbench.editor.limit.value": 1,
+    // Настройки для KimiCode панелей
+    "workbench.panel.opensMaximized": "preserve",
+    "workbench.panel.defaultLocation": "bottom",
+    "window.title": "${dirty}${activeEditorShort}${separator}${rootName}${separator}QODER Layout",
+    "workbench.colorTheme": "Default Dark+",
+    "workbench.iconTheme": "vs-seti"
+  },
+  "layout": {
+    "left": [
+      {
+        "type": "explorer",
+        "visible": true,
+        "collapsed": false
+      }
+    ],
+    "center": [
+      {
+        "groups": [
+          {
+            "views": [],
+            "size": 0.33
+          },
+          {
+            "views": [],
+            "size": 0.33
+          },
+          {
+            "views": [],
+            "size": 0.34
+          }
+        ]
+      }
+    ],
+    "bottom": [
+      {
+        "type": "terminal",
+        "visible": true
+      },
+      {
+        "type": "problems",
+        "visible": true
+      }
+    ],
+    "panel": {
+      "position": "bottom",
+      "size": 0.3
+    }
+  }
+}

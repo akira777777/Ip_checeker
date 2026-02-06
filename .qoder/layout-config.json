@@ -1,0 +1,46 @@
+{
+  "layout": {
+    "spacing": {
+      "equalSpacing": true,
+      "minPanelWidth": 300,
+      "panelPadding": 16,
+      "elementMargins": 8,
+      "gridGap": 12
+    },
+    "tabs": {
+      "fixedWidth": true,
+      "showCloseButton": "right",
+      "wrapTabs": false,
+      "tabSizing": "fixed",
+      "pinnedTabSizing": "normal"
+    },
+    "panels": {
+      "splitSizing": "distribute",
+      "centeredLayoutAutoResize": false,
+      "closeEmptyGroups": false,
+      "revealIfOpen": true
+    },
+    "appearance": {
+      "consistentPadding": true,
+      "treeIndent": 8,
+      "listPadding": 4,
+      "renderIndentGuides": "always"
+    },
+    "terminal": {
+      "tabsEnabled": true,
+      "hideCondition": "never",
+      "showActiveTerminal": "always"
+    },
+    "window": {
+      "restoreWindows": "all",
+      "restoreFullscreen": true,
+      "newWindowDimensions": "inherit"
+    }
+  },
+  "persistence": {
+    "restoreViewState": true,
+    "enablePreview": false,
+    "enablePreviewFromQuickOpen": false,
+    "openPositioning": "first"
+  }
+}

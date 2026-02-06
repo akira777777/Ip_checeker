@@ -1,0 +1,77 @@
+{
+  "window.restoreWindows": "all",
+  "window.restoreFullscreen": true,
+  "workbench.startupEditor": "none",
+  "workbench.editor.restoreViewState": true,
+  "workbench.editor.openPositioning": "first",
+  "files.autoSave": "afterDelay",
+  "editor.columnSelection": false,
+  "editor.wordWrap": "off",
+  
+  // Layout and Spacing Configuration
+  "workbench.panel.defaultLocation": "bottom",
+  "workbench.sideBar.location": "left",
+"workbench.statusBar.visible": true,
+  "workbench.activityBar.visible": true,
+  
+  // ПОЛНАЯ БЛОКИРОВКА перемещения элементов
+  "workbench.layoutControl.enabled": false,
+  "workbench.layoutControl.type": "menu",
+  "workbench.view.experimental.allowMovingToNewContainer": false,
+  "workbench.view.experimental.allowDragging": false,
+  
+  // Equal spacing between elements
+  "workbench.panel.opensMaximized": "preserve",
+  "workbench.editor.tabSizing": "fixed",
+  "workbench.editor.tabCloseButton": "right",
+  "workbench.editor.showTabs": "multiple",
+  "workbench.editor.wrapTabs": false,
+  "workbench.editor.tabActionLocation": "right",
+  "workbench.editor.pinnedTabSizing": "normal",
+  
+  // Fixed tab width and consistent appearance
+  "workbench.editor.pinnedTabSizing": "normal",
+  "workbench.editor.splitSizing": "distribute",
+  "workbench.editor.centeredLayoutAutoResize": false,
+  
+  // Grid layout for equal spacing
+  "workbench.grid.insertionIndicator": true,
+  "workbench.grid.resizeMode": "legacy",
+  
+  // Consistent padding and margins
+  "workbench.list.padding": 4,
+  "workbench.tree.indent": 8,
+  "workbench.tree.renderIndentGuides": "always",
+  
+  // Terminal and panel settings
+  "terminal.integrated.tabs.enabled": true,
+  "terminal.integrated.tabs.hideCondition": "never",
+  "terminal.integrated.tabs.showActiveTerminal": "always",
+  
+  // Window management
+  "window.newWindowDimensions": "inherit",
+  "window.openFoldersInNewWindow": "on",
+  "window.openWithoutArgumentsInNewWindow": "on",
+  
+  // Editor layout persistence
+  "workbench.editor.closeEmptyGroups": false,
+  "workbench.editor.revealIfOpen": true,
+  "workbench.editor.enablePreview": false,
+  "workbench.editor.enablePreviewFromQuickOpen": false,
+  
+  // Запрет редакторов в KimiCode окнах
+  "workbench.editor.limit.enabled": true,
+  "workbench.editor.limit.perEditorGroup": true,
+  "workbench.editor.limit.value": 1,
+  "workbench.editorAssociations": {
+    "*.kimi": "default",
+    "*.chat": "default"
+  },
+  
+  // KimiCode специфичные настройки
+  "kimi-code.disableEditorPopups": true,
+  "kimi-code.preventEditorWindows": true,
+"kimi-code.usePanelViewOnly": true,
+  "kimi-code.lockPanelPositions": true,
+  "kimi-code.preventPanelRearrangement": true
+}
