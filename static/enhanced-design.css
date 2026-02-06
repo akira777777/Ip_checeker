@@ -1,0 +1,1080 @@
+/**
+ * Enhanced Visual Design - IP Checker Pro
+ * Features:
+ * - Security-specific CSS variables
+ * - Gradient backgrounds for security states
+ * - Animated icons for active threats
+ * - Enhanced responsive design
+ * - Complete dark/light theme support
+ */
+
+/* ========================================
+   1. SECURITY-SPECIFIC CSS VARIABLES
+   ======================================== */
+
+:root {
+    /* Base Theme Transitions */
+    --theme-transition-duration: 0.3s;
+    --theme-transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Enhanced Security Color System */
+    --security-critical: #ff2d55;
+    --critical-dark: #c41e3a;
+    --critical-light: #ff6b8a;
+    --critical-glow: rgba(255, 45, 85, 0.4);
+    
+    --security-high: #ff9500;
+    --high-dark: #cc7a00;
+    --high-light: #ffb84d;
+    --high-glow: rgba(255, 149, 0, 0.4);
+    
+    --security-moderate: #ffcc00;
+    --moderate-dark: #cca300;
+    --moderate-light: #ffe066;
+    --moderate-glow: rgba(255, 204, 0, 0.4);
+    
+    --security-good: #34c759;
+    --good-dark: #2aa84a;
+    --good-light: #5fd97f;
+    --good-glow: rgba(52, 199, 89, 0.4);
+    
+    --security-excellent: #00c7be;
+    --excellent-dark: #00a8a0;
+    --excellent-light: #33d9d2;
+    --excellent-glow: rgba(0, 199, 190, 0.4);
+    
+    --security-info: #5ac8fa;
+    --info-dark: #3aa8da;
+    --info-light: #8adaff;
+    --info-glow: rgba(90, 200, 250, 0.4);
+    
+    /* Security State Gradients */
+    --gradient-critical: linear-gradient(135deg, #ff2d55 0%, #ff6b6b 50%, #ff8e8e 100%);
+    --gradient-high: linear-gradient(135deg, #ff9500 0%, #ffb700 50%, #ffcc00 100%);
+    --gradient-moderate: linear-gradient(135deg, #ffcc00 0%, #ffe066 50%, #fff0a3 100%);
+    --gradient-good: linear-gradient(135deg, #34c759 0%, #5fd97f 50%, #7ee697 100%);
+    --gradient-excellent: linear-gradient(135deg, #00c7be 0%, #33d9d2 50%, #66ebe6 100%);
+    --gradient-info: linear-gradient(135deg, #5ac8fa 0%, #8adaff 50%, #b4e7ff 100%);
+    
+    /* Security Background Gradients */
+    --bg-gradient-critical: linear-gradient(135deg, rgba(255, 45, 85, 0.15) 0%, rgba(196, 30, 58, 0.08) 100%);
+    --bg-gradient-high: linear-gradient(135deg, rgba(255, 149, 0, 0.15) 0%, rgba(204, 122, 0, 0.08) 100%);
+    --bg-gradient-moderate: linear-gradient(135deg, rgba(255, 204, 0, 0.15) 0%, rgba(204, 163, 0, 0.08) 100%);
+    --bg-gradient-good: linear-gradient(135deg, rgba(52, 199, 89, 0.15) 0%, rgba(42, 168, 74, 0.08) 100%);
+    --bg-gradient-excellent: linear-gradient(135deg, rgba(0, 199, 190, 0.15) 0%, rgba(0, 168, 160, 0.08) 100%);
+    --bg-gradient-info: linear-gradient(135deg, rgba(90, 200, 250, 0.15) 0%, rgba(58, 168, 218, 0.08) 100%);
+    
+    /* Security Border Colors */
+    --border-critical: rgba(255, 45, 85, 0.5);
+    --border-high: rgba(255, 149, 0, 0.5);
+    --border-moderate: rgba(255, 204, 0, 0.5);
+    --border-good: rgba(52, 199, 89, 0.5);
+    --border-excellent: rgba(0, 199, 190, 0.5);
+    --border-info: rgba(90, 200, 250, 0.5);
+    
+    /* Shadow Effects */
+    --shadow-critical: 0 4px 20px rgba(255, 45, 85, 0.3);
+    --shadow-high: 0 4px 20px rgba(255, 149, 0, 0.3);
+    --shadow-moderate: 0 4px 20px rgba(255, 204, 0, 0.3);
+    --shadow-good: 0 4px 20px rgba(52, 199, 89, 0.3);
+    --shadow-excellent: 0 4px 20px rgba(0, 199, 190, 0.3);
+    --shadow-info: 0 4px 20px rgba(90, 200, 250, 0.3);
+}
+
+/* ========================================
+   2. LIGHT THEME SECURITY VARIABLES
+   ======================================== */
+
+body.light-theme {
+    /* Light theme security colors */
+    --security-critical: #d32f2f;
+    --critical-light: #ffcdd2;
+    --critical-glow: rgba(211, 47, 47, 0.2);
+    
+    --security-high: #f57c00;
+    --high-light: #ffe0b2;
+    --high-glow: rgba(245, 124, 0, 0.2);
+    
+    --security-moderate: #fbc02d;
+    --moderate-light: #fff9c4;
+    --moderate-glow: rgba(251, 192, 45, 0.2);
+    
+    --security-good: #388e3c;
+    --good-light: #c8e6c9;
+    --good-glow: rgba(56, 142, 60, 0.2);
+    
+    --security-excellent: #0097a7;
+    --excellent-light: #b2ebf2;
+    --excellent-glow: rgba(0, 151, 167, 0.2);
+    
+    --security-info: #1976d2;
+    --info-light: #bbdefb;
+    --info-glow: rgba(25, 118, 210, 0.2);
+    
+    /* Light theme gradients */
+    --gradient-critical: linear-gradient(135deg, #d32f2f 0%, #e57373 50%, #ffcdd2 100%);
+    --gradient-high: linear-gradient(135deg, #f57c00 0%, #ffb74d 50%, #ffe0b2 100%);
+    --gradient-moderate: linear-gradient(135deg, #fbc02d 0%, #fff176 50%, #fff9c4 100%);
+    --gradient-good: linear-gradient(135deg, #388e3c 0%, #81c784 50%, #c8e6c9 100%);
+    --gradient-excellent: linear-gradient(135deg, #0097a7 0%, #4dd0e1 50%, #b2ebf2 100%);
+    --gradient-info: linear-gradient(135deg, #1976d2 0%, #64b5f6 50%, #bbdefb 100%);
+    
+    /* Light theme backgrounds */
+    --bg-gradient-critical: linear-gradient(135deg, rgba(211, 47, 47, 0.08) 0%, rgba(255, 205, 210, 0.15) 100%);
+    --bg-gradient-high: linear-gradient(135deg, rgba(245, 124, 0, 0.08) 0%, rgba(255, 224, 178, 0.15) 100%);
+    --bg-gradient-moderate: linear-gradient(135deg, rgba(251, 192, 45, 0.08) 0%, rgba(255, 249, 196, 0.15) 100%);
+    --bg-gradient-good: linear-gradient(135deg, rgba(56, 142, 60, 0.08) 0%, rgba(200, 230, 201, 0.15) 100%);
+    --bg-gradient-excellent: linear-gradient(135deg, rgba(0, 151, 167, 0.08) 0%, rgba(178, 235, 242, 0.15) 100%);
+    --bg-gradient-info: linear-gradient(135deg, rgba(25, 118, 210, 0.08) 0%, rgba(187, 222, 251, 0.15) 100%);
+}
+
+/* ========================================
+   3. GRADIENT BACKGROUNDS FOR SECURITY STATES
+   ======================================== */
+
+/* Security Status Header Styles */
+.security-status-header {
+    position: relative;
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    transition: all var(--theme-transition-duration) var(--theme-transition-timing);
+}
+
+.security-status-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    transition: all var(--theme-transition-duration) ease;
+}
+
+.security-status-header::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0.1;
+    pointer-events: none;
+    transition: all var(--theme-transition-duration) ease;
+}
+
+/* Critical State */
+.security-status-header.critical {
+    background: var(--bg-gradient-critical);
+    border: 2px solid var(--border-critical);
+    box-shadow: var(--shadow-critical), inset 0 0 30px rgba(255, 45, 85, 0.1);
+}
+
+.security-status-header.critical::before {
+    background: var(--gradient-critical);
+}
+
+.security-status-header.critical::after {
+    background: radial-gradient(ellipse at top, var(--critical-glow) 0%, transparent 70%);
+}
+
+/* High Risk State */
+.security-status-header.high {
+    background: var(--bg-gradient-high);
+    border: 2px solid var(--border-high);
+    box-shadow: var(--shadow-high), inset 0 0 30px rgba(255, 149, 0, 0.1);
+}
+
+.security-status-header.high::before {
+    background: var(--gradient-high);
+}
+
+.security-status-header.high::after {
+    background: radial-gradient(ellipse at top, var(--high-glow) 0%, transparent 70%);
+}
+
+/* Moderate State */
+.security-status-header.moderate {
+    background: var(--bg-gradient-moderate);
+    border: 2px solid var(--border-moderate);
+    box-shadow: var(--shadow-moderate), inset 0 0 30px rgba(255, 204, 0, 0.1);
+}
+
+.security-status-header.moderate::before {
+    background: var(--gradient-moderate);
+}
+
+.security-status-header.moderate::after {
+    background: radial-gradient(ellipse at top, var(--moderate-glow) 0%, transparent 70%);
+}
+
+/* Good State */
+.security-status-header.good {
+    background: var(--bg-gradient-good);
+    border: 2px solid var(--border-good);
+    box-shadow: var(--shadow-good), inset 0 0 30px rgba(52, 199, 89, 0.1);
+}
+
+.security-status-header.good::before {
+    background: var(--gradient-good);
+}
+
+.security-status-header.good::after {
+    background: radial-gradient(ellipse at top, var(--good-glow) 0%, transparent 70%);
+}
+
+/* Excellent State */
+.security-status-header.excellent {
+    background: var(--bg-gradient-excellent);
+    border: 2px solid var(--border-excellent);
+    box-shadow: var(--shadow-excellent), inset 0 0 30px rgba(0, 199, 190, 0.1);
+}
+
+.security-status-header.excellent::before {
+    background: var(--gradient-excellent);
+}
+
+.security-status-header.excellent::after {
+    background: radial-gradient(ellipse at top, var(--excellent-glow) 0%, transparent 70%);
+}
+
+/* Info State */
+.security-status-header.info {
+    background: var(--bg-gradient-info);
+    border: 2px solid var(--border-info);
+    box-shadow: var(--shadow-info), inset 0 0 30px rgba(90, 200, 250, 0.1);
+}
+
+.security-status-header.info::before {
+    background: var(--gradient-info);
+}
+
+.security-status-header.info::after {
+    background: radial-gradient(ellipse at top, var(--info-glow) 0%, transparent 70%);
+}
+
+/* ========================================
+   4. ANIMATED ICONS FOR ACTIVE THREATS
+   ======================================== */
+
+/* Base Security Icon Styles */
+.security-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    font-size: 1.75rem;
+    position: relative;
+    transition: all var(--theme-transition-duration) ease;
+}
+
+/* Critical Animation - Urgent Pulse */
+.security-icon.critical {
+    background: var(--gradient-critical);
+    color: white;
+    animation: critical-pulse 1.2s ease-in-out infinite;
+    box-shadow: 0 0 20px var(--critical-glow);
+}
+
+@keyframes critical-pulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 20px var(--critical-glow), 0 0 40px rgba(255, 45, 85, 0.3);
+    }
+    50% {
+        transform: scale(1.08);
+        box-shadow: 0 0 30px var(--critical-glow), 0 0 60px rgba(255, 45, 85, 0.5);
+    }
+}
+
+/* High Risk Animation - Rapid Alert */
+.security-icon.high {
+    background: var(--gradient-high);
+    color: white;
+    animation: high-alert 1.5s ease-in-out infinite;
+    box-shadow: 0 0 15px var(--high-glow);
+}
+
+@keyframes high-alert {
+    0%, 100% {
+        transform: scale(1) rotate(0deg);
+        box-shadow: 0 0 15px var(--high-glow);
+    }
+    25% {
+        transform: scale(1.05) rotate(-3deg);
+    }
+    75% {
+        transform: scale(1.05) rotate(3deg);
+    }
+}
+
+/* Moderate Animation - Gentle Warning */
+.security-icon.moderate {
+    background: var(--gradient-moderate);
+    color: rgba(0, 0, 0, 0.8);
+    animation: moderate-warning 2s ease-in-out infinite;
+    box-shadow: 0 0 15px var(--moderate-glow);
+}
+
+@keyframes moderate-warning {
+    0%, 100% {
+        transform: translateY(0);
+        box-shadow: 0 0 15px var(--moderate-glow);
+    }
+    50% {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 20px var(--moderate-glow);
+    }
+}
+
+/* Good Animation - Subtle Success */
+.security-icon.good {
+    background: var(--gradient-good);
+    color: white;
+    animation: good-pulse 2.5s ease-in-out infinite;
+    box-shadow: 0 0 15px var(--good-glow);
+}
+
+@keyframes good-pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.05);
+        opacity: 0.9;
+    }
+}
+
+/* Excellent Animation - Smooth Flow */
+.security-icon.excellent {
+    background: var(--gradient-excellent);
+    color: white;
+    animation: excellent-flow 3s ease-in-out infinite;
+    box-shadow: 0 0 15px var(--excellent-glow);
+}
+
+@keyframes excellent-flow {
+    0%, 100% {
+        transform: scale(1);
+        filter: brightness(1);
+    }
+    50% {
+        transform: scale(1.03);
+        filter: brightness(1.1);
+    }
+}
+
+/* Info Animation - Gentle Pulse */
+.security-icon.info {
+    background: var(--gradient-info);
+    color: white;
+    animation: info-pulse 2.8s ease-in-out infinite;
+    box-shadow: 0 0 15px var(--info-glow);
+}
+
+@keyframes info-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.8;
+    }
+}
+
+/* Threat Indicator Badge Animation */
+.threat-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    animation: threat-badge-glow 2s ease-in-out infinite;
+}
+
+.threat-badge.critical {
+    background: var(--gradient-critical);
+    color: white;
+    animation: threat-badge-critical 1s ease-in-out infinite;
+}
+
+@keyframes threat-badge-critical {
+    0%, 100% {
+        box-shadow: 0 0 10px var(--critical-glow);
+    }
+    50% {
+        box-shadow: 0 0 25px var(--critical-glow), 0 0 40px rgba(255, 45, 85, 0.4);
+    }
+}
+
+.threat-badge.high {
+    background: var(--gradient-high);
+    color: white;
+}
+
+.threat-badge.moderate {
+    background: var(--gradient-moderate);
+    color: rgba(0, 0, 0, 0.8);
+}
+
+.threat-badge.good {
+    background: var(--gradient-good);
+    color: white;
+}
+
+.threat-badge.excellent {
+    background: var(--gradient-excellent);
+    color: white;
+}
+
+/* Rotating Shield Icon */
+.security-icon.rotating {
+    animation: rotate-shield 3s linear infinite;
+}
+
+@keyframes rotate-shield {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Pulsing Ring Effect */
+.security-icon.pulse-ring::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    right: -8px;
+    bottom: -8px;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    opacity: 0;
+    animation: pulse-ring 1.5s ease-out infinite;
+}
+
+@keyframes pulse-ring {
+    0% {
+        transform: scale(0.8);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1.3);
+        opacity: 0;
+    }
+}
+
+/* ========================================
+   5. ENHANCED SECURITY METRIC CARDS
+   ======================================== */
+
+.security-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.security-metric-card {
+    position: relative;
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    text-align: center;
+    transition: all var(--theme-transition-duration) var(--theme-transition-timing);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--panel-strong);
+}
+
+.security-metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    transition: all var(--theme-transition-duration) ease;
+}
+
+.security-metric-card:hover {
+    transform: translateY(-4px);
+}
+
+/* Metric Card States */
+.security-metric-card.critical::before {
+    background: var(--gradient-critical);
+}
+
+.security-metric-card.critical:hover {
+    box-shadow: var(--shadow-critical);
+    border-color: var(--border-critical);
+}
+
+.security-metric-card.high::before {
+    background: var(--gradient-high);
+}
+
+.security-metric-card.high:hover {
+    box-shadow: var(--shadow-high);
+    border-color: var(--border-high);
+}
+
+.security-metric-card.moderate::before {
+    background: var(--gradient-moderate);
+}
+
+.security-metric-card.moderate:hover {
+    box-shadow: var(--shadow-moderate);
+    border-color: var(--border-moderate);
+}
+
+.security-metric-card.good::before {
+    background: var(--gradient-good);
+}
+
+.security-metric-card.good:hover {
+    box-shadow: var(--shadow-good);
+    border-color: var(--border-good);
+}
+
+.security-metric-card.excellent::before {
+    background: var(--gradient-excellent);
+}
+
+.security-metric-card.excellent:hover {
+    box-shadow: var(--shadow-excellent);
+    border-color: var(--border-excellent);
+}
+
+.security-metric-card.info::before {
+    background: var(--gradient-info);
+}
+
+.security-metric-card.info:hover {
+    box-shadow: var(--shadow-info);
+    border-color: var(--border-info);
+}
+
+.security-metric-icon {
+    font-size: 1.75rem;
+    margin-bottom: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.security-metric-value {
+    font-size: 2rem;
+    font-weight: 800;
+    margin: 0.5rem 0;
+    line-height: 1;
+}
+
+.security-metric-value.critical { color: var(--security-critical); }
+.security-metric-value.high { color: var(--security-high); }
+.security-metric-value.moderate { color: var(--security-moderate); }
+.security-metric-value.good { color: var(--security-good); }
+.security-metric-value.excellent { color: var(--security-excellent); }
+.security-metric-value.info { color: var(--security-info); }
+
+.security-metric-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    opacity: 0.8;
+}
+
+/* ========================================
+   6. SECURITY TIMELINE ENHANCEMENTS
+   ======================================== */
+
+.security-timeline {
+    position: relative;
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    background: var(--panel-strong);
+    border: 1px solid var(--border);
+}
+
+.security-timeline-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.security-timeline-header i {
+    font-size: 1.25rem;
+    color: var(--primary);
+}
+
+.security-timeline-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.security-timeline-events {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    padding: 0.5rem 0;
+    scroll-snap-type: x mandatory;
+}
+
+.security-timeline-event {
+    flex: 0 0 auto;
+    min-width: 200px;
+    padding: 1rem;
+    border-radius: var(--radius-small);
+    border: 1px solid var(--border);
+    background: var(--panel);
+    scroll-snap-align: start;
+    transition: all var(--theme-transition-duration) ease;
+}
+
+.security-timeline-event:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-small);
+}
+
+/* Timeline Event States */
+.security-timeline-event.critical {
+    border-color: var(--security-critical);
+    background: var(--bg-gradient-critical);
+}
+
+.security-timeline-event.high {
+    border-color: var(--security-high);
+    background: var(--bg-gradient-high);
+}
+
+.security-timeline-event.moderate {
+    border-color: var(--security-moderate);
+    background: var(--bg-gradient-moderate);
+}
+
+.security-timeline-event.good {
+    border-color: var(--security-good);
+    background: var(--bg-gradient-good);
+}
+
+.security-timeline-event.excellent {
+    border-color: var(--security-excellent);
+    background: var(--bg-gradient-excellent);
+}
+
+.security-timeline-event.info {
+    border-color: var(--security-info);
+    background: var(--bg-gradient-info);
+}
+
+/* ========================================
+   7. ENHANCED RESPONSIVE DESIGN
+   ======================================== */
+
+/* Mobile-First Base Styles */
+@media (max-width: 480px) {
+    .security-status-header {
+        padding: 1rem;
+    }
+    
+    .security-status-content {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .security-main-indicator {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .security-status-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 1.5rem;
+    }
+    
+    .security-status-title {
+        font-size: 1.1rem;
+    }
+    
+    .security-status-description {
+        font-size: 0.875rem;
+    }
+    
+    .security-score-display {
+        align-items: center;
+    }
+    
+    .security-score-number {
+        font-size: 2rem;
+    }
+    
+    .security-metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+    
+    .security-metric-card {
+        padding: 1rem;
+    }
+    
+    .security-metric-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1.25rem;
+    }
+    
+    .security-metric-value {
+        font-size: 1.5rem;
+    }
+    
+    .security-metric-label {
+        font-size: 0.625rem;
+    }
+    
+    .security-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 1.5rem;
+    }
+    
+    .security-timeline-events {
+        gap: 0.75rem;
+    }
+    
+    .security-timeline-event {
+        min-width: 160px;
+        padding: 0.75rem;
+    }
+    
+    .threat-badge {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+    }
+}
+
+/* Tablet Styles */
+@media (min-width: 481px) and (max-width: 768px) {
+    .security-metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .security-status-content {
+        flex-wrap: wrap;
+    }
+    
+    .security-score-display {
+        margin-left: auto;
+    }
+}
+
+/* Large Tablet/Small Desktop */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .security-metrics-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* Desktop Styles */
+@media (min-width: 1025px) {
+    .security-metrics-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .security-status-header {
+        padding: 2rem;
+    }
+    
+    .security-icon {
+        width: 70px;
+        height: 70px;
+        font-size: 2rem;
+    }
+}
+
+/* Large Desktop */
+@media (min-width: 1440px) {
+    .security-metrics-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.5rem;
+    }
+    
+    .security-metric-card {
+        padding: 1.5rem;
+    }
+    
+    .security-metric-value {
+        font-size: 2.5rem;
+    }
+    
+    .security-timeline-events {
+        gap: 1.5rem;
+    }
+}
+
+/* ========================================
+   8. DARK/LIGHT THEME ENHANCEMENTS
+   ======================================== */
+
+/* Smooth Theme Transition */
+body,
+body * {
+    transition: background-color var(--theme-transition-duration) var(--theme-transition-timing),
+                color var(--theme-transition-duration) var(--theme-transition-timing),
+                border-color var(--theme-transition-duration) var(--theme-transition-timing),
+                box-shadow var(--theme-transition-duration) var(--theme-transition-timing);
+}
+
+/* Exclude certain elements from transition for performance */
+.security-icon,
+.threat-badge,
+.security-metric-card::before {
+    transition: transform var(--theme-transition-duration) ease,
+                box-shadow var(--theme-transition-duration) ease;
+}
+
+/* Light Theme Specific Adjustments */
+body.light-theme .security-metric-card {
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+body.light-theme .security-metric-card:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+body.light-theme .security-timeline {
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+body.light-theme .security-timeline-event {
+    background: #f8fafc;
+}
+
+body.light-theme .security-icon.critical,
+body.light-theme .security-icon.high,
+body.light-theme .security-icon.good,
+body.light-theme .security-icon.excellent,
+body.light-theme .security-icon.info {
+    color: white;
+}
+
+body.light-theme .security-icon.moderate {
+    color: rgba(0, 0, 0, 0.8);
+}
+
+body.light-theme .security-metric-icon {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+/* Dark Theme Specific Enhancements */
+body:not(.light-theme) .security-metric-card {
+    background: linear-gradient(145deg, var(--panel-strong), var(--panel));
+}
+
+body:not(.light-theme) .security-timeline {
+    background: linear-gradient(145deg, var(--panel-strong), var(--panel));
+}
+
+body:not(.light-theme) .security-timeline-event {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* ========================================
+   9. ACCESSIBILITY ENHANCEMENTS
+   ======================================== */
+
+/* Respect Reduced Motion Preference */
+@media (prefers-reduced-motion: reduce) {
+    .security-icon.critical,
+    .security-icon.high,
+    .security-icon.moderate,
+    .security-icon.good,
+    .security-icon.excellent,
+    .security-icon.info,
+    .threat-badge.critical,
+    .security-icon.rotating,
+    .security-icon.pulse-ring::before {
+        animation: none;
+    }
+    
+    .security-metric-card:hover,
+    .security-timeline-event:hover {
+        transform: none;
+    }
+    
+    body,
+    body * {
+        transition: none;
+    }
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+    .security-status-header {
+        border-width: 3px;
+    }
+    
+    .security-metric-card {
+        border-width: 2px;
+    }
+    
+    .security-icon {
+        border: 2px solid currentColor;
+    }
+}
+
+/* Focus Visible Styles */
+.security-metric-card:focus-visible,
+.security-timeline-event:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* ========================================
+   10. SECURITY SCORE CIRCLE ENHANCEMENT
+   ======================================== */
+
+.security-score-circle {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.security-score-circle.critical {
+    background: conic-gradient(var(--security-critical) var(--score-percentage, 0%), rgba(255, 45, 85, 0.1) 0);
+    box-shadow: 0 0 30px var(--critical-glow);
+}
+
+.security-score-circle.high {
+    background: conic-gradient(var(--security-high) var(--score-percentage, 0%), rgba(255, 149, 0, 0.1) 0);
+    box-shadow: 0 0 30px var(--high-glow);
+}
+
+.security-score-circle.moderate {
+    background: conic-gradient(var(--security-moderate) var(--score-percentage, 0%), rgba(255, 204, 0, 0.1) 0);
+    box-shadow: 0 0 30px var(--moderate-glow);
+}
+
+.security-score-circle.good {
+    background: conic-gradient(var(--security-good) var(--score-percentage, 0%), rgba(52, 199, 89, 0.1) 0);
+    box-shadow: 0 0 30px var(--good-glow);
+}
+
+.security-score-circle.excellent {
+    background: conic-gradient(var(--security-excellent) var(--score-percentage, 0%), rgba(0, 199, 190, 0.1) 0);
+    box-shadow: 0 0 30px var(--excellent-glow);
+}
+
+.security-score-circle::before {
+    content: '';
+    position: absolute;
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background: var(--panel-strong);
+}
+
+.security-score-circle-content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+}
+
+.security-score-circle-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.security-score-circle-label {
+    font-size: 0.75rem;
+    opacity: 0.7;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* ========================================
+   11. SECURITY RIBBON ENHANCEMENT
+   ======================================== */
+
+.security-ribbon {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    border-radius: var(--radius-small);
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.03);
+    margin-top: 1rem;
+    font-weight: 500;
+    transition: all var(--theme-transition-duration) ease;
+}
+
+.security-ribbon.critical {
+    background: var(--bg-gradient-critical);
+    border-color: var(--border-critical);
+    color: var(--security-critical);
+}
+
+.security-ribbon.high {
+    background: var(--bg-gradient-high);
+    border-color: var(--border-high);
+    color: var(--security-high);
+}
+
+.security-ribbon.moderate {
+    background: var(--bg-gradient-moderate);
+    border-color: var(--border-moderate);
+    color: var(--security-moderate);
+}
+
+.security-ribbon.good {
+    background: var(--bg-gradient-good);
+    border-color: var(--border-good);
+    color: var(--security-good);
+}
+
+.security-ribbon.excellent {
+    background: var(--bg-gradient-excellent);
+    border-color: var(--border-excellent);
+    color: var(--security-excellent);
+}
+
+.security-ribbon.info {
+    background: var(--bg-gradient-info);
+    border-color: var(--border-info);
+    color: var(--security-info);
+}
+
+/* Light theme adjustments */
+body.light-theme .security-ribbon.critical { color: #b71c1c; }
+body.light-theme .security-ribbon.high { color: #e65100; }
+body.light-theme .security-ribbon.moderate { color: #f9a825; }
+body.light-theme .security-ribbon.good { color: #2e7d32; }
+body.light-theme .security-ribbon.excellent { color: #00838f; }
+body.light-theme .security-ribbon.info { color: #1565c0; }

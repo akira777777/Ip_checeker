@@ -1,0 +1,10 @@
+{
+  "window.restoreWindows": "all",
+  "window.restoreFullscreen": true,
+  "workbench.startupEditor": "none",
+  "workbench.editor.restoreViewState": true,
+  "workbench.editor.openPositioning": "first",
+  "files.autoSave": "afterDelay",
+  "editor.columnSelection": false,
+  "editor.wordWrap": "off"
+}

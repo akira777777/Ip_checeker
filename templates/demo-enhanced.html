@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP Checker Pro - Enhanced Demo</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { 
+                            50: '#eff6ff', 
+                            100: '#dbeafe', 
+                            500: '#3b82f6', 
+                            600: '#2563eb',
+                            700: '#1d4ed8'
+                        },
+                        success: { 50: '#ecfdf5', 500: '#10b981', 600: '#059669' },
+                        warning: { 50: '#fffbeb', 500: '#f59e0b', 600: '#d97706' },
+                        danger: { 50: '#fef2f2', 500: '#ef4444', 600: '#dc2626' },
+                    },
+                    animation: {
+                        'shimmer': 'shimmer 1.5s infinite',
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                        'slide-up': 'slideUp 0.5s ease-out',
+                    },
+                    keyframes: {
+                        shimmer: {
+                            '0%': { backgroundPosition: '200% 0' },
+                            '100%': { backgroundPosition: '-200% 0' },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- ApexCharts -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    
+    <!-- Tabulator -->
+    <link href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator_tailwind.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
+    
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    
+    <!-- Notyf -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.js"></script>
+    
+    <!-- GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* Skeleton Loading Animation */
+        .skeleton {
+            background: linear-gradient(
+                90deg,
+                rgba(156, 163, 175, 0.2) 25%,
+                rgba(156, 163, 175, 0.4) 50%,
+                rgba(156, 163, 175, 0.2) 75%
+            );
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        
+        .dark .skeleton {
+            background: linear-gradient(
+                90deg,
+                rgba(75, 85, 99, 0.3) 25%,
+                rgba(75, 85, 99, 0.5) 50%,
+                rgba(75, 85, 99, 0.3) 75%
+            );
+            background-size: 200% 100%;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+        
+        /* Glass morphism effect */
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .dark .glass {
+            background: rgba(15, 23, 42, 0.7);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-gray-100 transition-colors duration-300">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700 flex flex-col transition-colors duration-300">
+            <div class="p-6 border-b border-gray-200 dark:border-slate-700">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-primary-500 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-shield-alt text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg">IP Checker Pro</h1>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Network Intelligence</p>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="flex-1 p-4 space-y-1">
+                <a href="#" class="flex items-center gap-3 px-4 py-3 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 rounded-xl transition-colors">
+                    <i class="fas fa-chart-pie w-5"></i>
+                    <span class="font-medium">Dashboard</span>
+                </a>
+                <a href="#" class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700/50 rounded-xl transition-colors">
+                    <i class="fas fa-search w-5"></i>
+                    <span>PC Investigation</span>
+                </a>
+                <a href="#" class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700/50 rounded-xl transition-colors">
+                    <i class="fas fa-globe w-5"></i>
+                    <span>IP Geolocation</span>
+                </a>
+                <a href="#" class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700/50 rounded-xl transition-colors">
+                    <i class="fas fa-map-marked-alt w-5"></i>
+                    <span>Visual Map</span>
+                </a>
+                <a href="#" class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700/50 rounded-xl transition-colors">
+                    <i class="fas fa-lock w-5"></i>
+                    <span>Security Scan</span>
+                </a>
+            </nav>
+            
+            <div class="p-4 border-t border-gray-200 dark:border-slate-700">
+                <button id="theme-toggle" class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">
+                    <i class="fas fa-moon dark:hidden"></i>
+                    <i class="fas fa-sun hidden dark:block"></i>
+                    <span class="dark:hidden">Dark Mode</span>
+                    <span class="hidden dark:block">Light Mode</span>
+                </button>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto">
+            <!-- Header -->
+            <header class="sticky top-0 z-30 glass border-b border-gray-200 dark:border-slate-700 px-8 py-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-2xl font-bold">Dashboard</h2>
+                    <div class="flex items-center gap-4">
+                        <button onclick="refreshData()" class="flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-colors">
+                            <i class="fas fa-sync-alt"></i>
+                            <span>Refresh</span>
+                        </button>
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-purple-600 flex items-center justify-center text-white font-bold">
+                            A
+                        </div>
+                    </div>
+                </div>
+            </header>
+            
+            <div class="p-8 space-y-8">
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="stats-grid">
+                    <!-- Loading skeleton -->
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-gray-100 dark:border-slate-700 shadow-sm">
+                        <div class="skeleton w-12 h-12 rounded-xl mb-4"></div>
+                        <div class="skeleton w-24 h-8 rounded mb-2"></div>
+                        <div class="skeleton w-32 h-4 rounded"></div>
+                    </div>
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-gray-100 dark:border-slate-700 shadow-sm">
+                        <div class="skeleton w-12 h-12 rounded-xl mb-4"></div>
+                        <div class="skeleton w-24 h-8 rounded mb-2"></div>
+                        <div class="skeleton w-32 h-4 rounded"></div>
+                    </div>
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-gray-100 dark:border-slate-700 shadow-sm">
+                        <div class="skeleton w-12 h-12 rounded-xl mb-4"></div>
+                        <div class="skeleton w-24 h-8 rounded mb-2"></div>
+                        <div class="skeleton w-32 h-4 rounded"></div>
+                    </div>
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-gray-100 dark:border-slate-700 shadow-sm">
+                        <div class="skeleton w-12 h-12 rounded-xl mb-4"></div>
+                        <div class="skeleton w-24 h-8 rounded mb-2"></div>
+                        <div class="skeleton w-32 h-4 rounded"></div>
+                    </div>
+                </div>
+                
+                <!-- Charts Section -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-gray-100 dark:border-slate-700 shadow-sm">
+                        <h3 class="text-lg font-semibold mb-4">Connection Types</h3>
+                        <div id="connection-chart"></div>
+                    </div>
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-gray-100 dark:border-slate-700 shadow-sm">
+                        <h3 class="text-lg font-semibold mb-4">Security Score</h3>
+                        <div id="security-chart"></div>
+                    </div>
+                </div>
+                
+                <!-- Security Score Card -->
+                <div class="bg-gradient-to-r from-primary-500 to-primary-600 rounded-2xl p-8 text-white">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-2xl font-bold mb-2">Security Analysis</h3>
+                            <p class="text-primary-100">Your network security status based on active connections</p>
+                            <div class="flex gap-6 mt-6">
+                                <div>
+                                    <div class="text-3xl font-bold" id="secure-count">-</div>
+                                    <div class="text-primary-100 text-sm">Secure</div>
+                                </div>
+                                <div>
+                                    <div class="text-3xl font-bold" id="warning-count">-</div>
+                                    <div class="text-primary-100 text-sm">Warnings</div>
+                                </div>
+                                <div>
+                                    <div class="text-3xl font-bold" id="threat-count">-</div>
+                                    <div class="text-primary-100 text-sm">Threats</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="w-32 h-32 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
+                            <div class="text-center">
+                                <div class="text-4xl font-bold" id="security-score">-</div>
+                                <div class="text-xs text-primary-100">Score</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Connections Table -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
+                    <div class="p-6 border-b border-gray-100 dark:border-slate-700">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold">Active Connections</h3>
+                            <div class="flex gap-2">
+                                <button onclick="exportTable()" class="px-4 py-2 text-sm bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg transition-colors">
+                                    <i class="fas fa-download mr-2"></i>Export
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="connections-table"></div>
+                </div>
+                
+                <!-- Map Section -->
+                <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-gray-100 dark:border-slate-700 shadow-sm">
+                    <h3 class="text-lg font-semibold mb-4">Geographic Distribution</h3>
+                    <div id="map" class="h-96 rounded-xl"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        // Initialize Notyf
+        const notyf = new Notyf({
+            duration: 4000,
+            position: { x: 'right', y: 'top' },
+            types: [
+                { type: 'success', background: '#10b981', icon: '<i class="fas fa-check-circle"></i>' },
+                { type: 'error', background: '#ef4444', icon: '<i class="fas fa-exclamation-circle"></i>' },
+                { type: 'warning', background: '#f59e0b', icon: '<i class="fas fa-exclamation-triangle"></i>' }
+            ]
+        });
+        
+        // Theme toggle
+        document.getElementById('theme-toggle').addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        });
+        
+        // Load saved theme
+        if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        }
+        
+        // Sample data for demo
+        const sampleConnections = [
+            { id: 1, protocol: 'TCP', local: '192.168.1.5:54321', remote: '8.8.8.8:443', status: 'ESTABLISHED', process: 'chrome.exe', country: 'United States', risk: 'safe', riskLevel: 0 },
+            { id: 2, protocol: 'TCP', local: '192.168.1.5:54322', remote: '140.82.121.4:443', status: 'ESTABLISHED', process: 'git.exe', country: 'United States', risk: 'safe', riskLevel: 0 },
+            { id: 3, protocol: 'UDP', local: '192.168.1.5:5353', remote: '224.0.0.251:5353', status: 'ESTABLISHED', process: 'svchost.exe', country: 'Local', risk: 'safe', riskLevel: 0 },
+            { id: 4, protocol: 'TCP', local: '192.168.1.5:54325', remote: '185.199.108.133:443', status: 'ESTABLISHED', process: 'chrome.exe', country: 'Netherlands', risk: 'warning', riskLevel: 1 },
+            { id: 5, protocol: 'TCP', local: '192.168.1.5:54330', remote: '91.108.56.105:443', status: 'ESTABLISHED', process: 'telegram.exe', country: 'UK', risk: 'warning', riskLevel: 1 },
+        ];
+        
+        // Initialize Tabulator table
+        let table;
+        function initTable() {
+            table = new Tabulator("#connections-table", {
+                data: sampleConnections,
+                layout: "fitColumns",
+                responsiveLayout: "hide",
+                pagination: "local",
+                paginationSize: 10,
+                movableColumns: true,
+                columns: [
+                    {title: "Protocol", field: "protocol", sorter: "string", width: 90, hozAlign: "center"},
+                    {title: "Local Address", field: "local", sorter: "string", headerFilter: "input"},
+                    {title: "Remote Address", field: "remote", sorter: "string", headerFilter: "input"},
+                    {title: "Status", field: "status", sorter: "string", formatter: function(cell) {
+                        const val = cell.getValue();
+                        const color = val === 'ESTABLISHED' ? 'text-success-500' : 'text-warning-500';
+                        return `<span class="${color} font-medium">${val}</span>`;
+                    }},
+                    {title: "Process", field: "process", sorter: "string"},
+                    {title: "Location", field: "country", sorter: "string"},
+                    {title: "Risk", field: "risk", sorter: "string", formatter: function(cell) {
+                        const val = cell.getValue();
+                        const colors = { safe: 'bg-success-500', warning: 'bg-warning-500', danger: 'bg-danger-500' };
+                        const labels = { safe: 'Safe', warning: 'Warning', danger: 'Threat' };
+                        return `<span class="${colors[val]} text-white text-xs px-2 py-1 rounded-full">${labels[val]}</span>`;
+                    }, hozAlign: "center"}
+                ],
+            });
+        }
+        
+        // Initialize ApexCharts
+        let connectionChart, securityChart;
+        function initCharts() {
+            // Connection Types Pie Chart
+            const connectionOptions = {
+                series: [65, 35],
+                labels: ['TCP', 'UDP'],
+                chart: {
+                    type: 'donut',
+                    height: 300
+                },
+                colors: ['#3b82f6', '#10b981'],
+                plotOptions: {
+                    pie: {
+                        donut: {
+                            size: '70%',
+                            labels: {
+                                show: true,
+                                total: {
+                                    show: true,
+                                    label: 'Total',
+                                    formatter: function(w) {
+                                        return w.globals.seriesTotals.reduce((a,b) => a+b, 0);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                legend: {
+                    position: 'bottom'
+                }
+            };
+            connectionChart = new ApexCharts(document.querySelector("#connection-chart"), connectionOptions);
+            connectionChart.render();
+            
+            // Security Score Radial Bar
+            const securityOptions = {
+                series: [78],
+                chart: {
+                    type: 'radialBar',
+                    height: 300
+                },
+                plotOptions: {
+                    radialBar: {
+                        hollow: { size: '60%' },
+                        dataLabels: {
+                            show: true,
+                            name: { show: false },
+                            value: {
+                                fontSize: '36px',
+                                fontWeight: 'bold',
+                                formatter: function(val) { return val + '/100'; }
+                            }
+                        }
+                    }
+                },
+                colors: ['#10b981']
+            };
+            securityChart = new ApexCharts(document.querySelector("#security-chart"), securityOptions);
+            securityChart.render();
+        }
+        
+        // Initialize Leaflet Map with MarkerCluster
+        let map, markers;
+        function initMap() {
+            map = L.map('map').setView([20, 0], 2);
+            
+            // Dark mode tiles
+            const isDark = document.documentElement.classList.contains('dark');
+            const tileUrl = isDark 
+                ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+                : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+            
+            L.tileLayer(tileUrl, {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+            
+            // Marker cluster group
+            markers = L.markerClusterGroup();
+            
+            // Sample markers
+            const locations = [
+                { lat: 37.7749, lng: -122.4194, ip: '8.8.8.8', city: 'Mountain View', country: 'USA' },
+                { lat: 52.5200, lng: 13.4050, ip: '185.199.108.133', city: 'Berlin', country: 'Germany' },
+                { lat: 51.5074, lng: -0.1278, ip: '91.108.56.105', city: 'London', country: 'UK' },
+            ];
+            
+            locations.forEach(loc => {
+                const marker = L.marker([loc.lat, loc.lng])
+                    .bindPopup(`<b>${loc.ip}</b><br>${loc.city}, ${loc.country}`);
+                markers.addLayer(marker);
+            });
+            
+            map.addLayer(markers);
+        }
+        
+        // Refresh data with animations
+        function refreshData() {
+            notyf.success('Refreshing data...');
+            
+            // Simulate loading
+            const statsGrid = document.getElementById('stats-grid');
+            statsGrid.innerHTML = `
+                <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-gray-100 dark:border-slate-700 shadow-sm">
+                    <div class="skeleton w-12 h-12 rounded-xl mb-4"></div>
+                    <div class="skeleton w-24 h-8 rounded mb-2"></div>
+                    <div class="skeleton w-32 h-4 rounded"></div>
+                </div>
+                <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-gray-100 dark:border-slate-700 shadow-sm">
+                    <div class="skeleton w-12 h-12 rounded-xl mb-4"></div>
+                    <div class="skeleton w-24 h-8 rounded mb-2"></div>
+                    <div class="skeleton w-32 h-4 rounded"></div>
+                </div>
+                <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-gray-100 dark:border-slate-700 shadow-sm">
+                    <div class="skeleton w-12 h-12 rounded-xl mb-4"></div>
+                    <div class="skeleton w-24 h-8 rounded mb-2"></div>
+                    <div class="skeleton w-32 h-4 rounded"></div>
+                </div>
+                <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-gray-100 dark:border-slate-700 shadow-sm">
+                    <div class="skeleton w-12 h-12 rounded-xl mb-4"></div>
+                    <div class="skeleton w-24 h-8 rounded mb-2"></div>
+                    <div class="skeleton w-32 h-4 rounded"></div>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                renderStats();
+                notyf.success('Data refreshed successfully!');
+            }, 1500);
+        }
+        
+        // Render stat cards
+        function renderStats() {
+            const statsGrid = document.getElementById('stats-grid');
+            const stats = [
+                { label: 'Active Connections', value: 42, icon: 'fa-network-wired', color: 'primary', trend: '+12%' },
+                { label: 'Secure Connections', value: 35, icon: 'fa-check-circle', color: 'success', trend: '+5%' },
+                { label: 'Warnings', value: 5, icon: 'fa-exclamation-triangle', color: 'warning', trend: '-2%' },
+                { label: 'Threats', value: 2, icon: 'fa-bug', color: 'danger', trend: '0%' }
+            ];
+            
+            const colorClasses = {
+                primary: 'bg-primary-50 dark:bg-primary-900/20 text-primary-500',
+                success: 'bg-success-50 dark:bg-success-900/20 text-success-500',
+                warning: 'bg-warning-50 dark:bg-warning-900/20 text-warning-500',
+                danger: 'bg-danger-50 dark:bg-danger-900/20 text-danger-500'
+            };
+            
+            statsGrid.innerHTML = stats.map(stat => `
+                <div class="stat-card bg-white dark:bg-slate-800 rounded-2xl p-6 border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+                    <div class="flex items-start justify-between">
+                        <div class="w-12 h-12 ${colorClasses[stat.color]} rounded-xl flex items-center justify-center">
+                            <i class="fas ${stat.icon} text-xl"></i>
+                        </div>
+                        <span class="text-xs font-medium ${stat.trend.startsWith('+') ? 'text-success-500' : stat.trend.startsWith('-') ? 'text-success-500' : 'text-gray-500'}">
+                            ${stat.trend}
+                        </span>
+                    </div>
+                    <div class="mt-4">
+                        <div class="text-3xl font-bold stat-value" data-value="${stat.value}">0</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">${stat.label}</div>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Animate stat values
+            document.querySelectorAll('.stat-value').forEach(el => {
+                const target = parseInt(el.dataset.value);
+                gsap.to(el, {
+                    innerText: target,
+                    duration: 1.5,
+                    snap: { innerText: 1 },
+                    ease: "power2.out"
+                });
+            });
+            
+            // Animate cards entrance
+            gsap.from(".stat-card", {
+                duration: 0.6,
+                y: 30,
+                opacity: 0,
+                stagger: 0.1,
+                ease: "power3.out"
+            });
+            
+            // Update security stats
+            document.getElementById('secure-count').textContent = 35;
+            document.getElementById('warning-count').textContent = 5;
+            document.getElementById('threat-count').textContent = 2;
+            document.getElementById('security-score').textContent = '83';
+        }
+        
+        // Export table
+        function exportTable() {
+            table.download("csv", "connections.csv");
+            notyf.success('Table exported to CSV!');
+        }
+        
+        // Initialize everything
+        document.addEventListener('DOMContentLoaded', () => {
+            initTable();
+            initCharts();
+            initMap();
+            renderStats();
+            
+            // Welcome notification
+            setTimeout(() => {
+                notyf.success('Welcome to IP Checker Pro Enhanced!');
+            }, 500);
+        });
+    </script>
+</body>
+</html>

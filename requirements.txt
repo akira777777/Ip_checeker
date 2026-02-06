@@ -1,0 +1,6 @@
+Flask>=3.0,<4
+psutil>=5.9
+requests>=2.31
+ipapi>=1.0
+python-whois>=0.9
+folium>=0.17
