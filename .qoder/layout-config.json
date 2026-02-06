@@ -1,46 +1,63 @@
 {
+  "version": "1.0",
   "layout": {
+    "type": "grid",
     "spacing": {
-      "equalSpacing": true,
-      "minPanelWidth": 300,
-      "panelPadding": 16,
-      "elementMargins": 8,
-      "gridGap": 12
+      "equal": true,
+      "value": 12,
+      "unit": "px",
+      "consistent": true
+    },
+    "editorGroups": {
+      "count": 3,
+      "distribution": "equal",
+      "sizing": "distribute",
+      "locked": true,
+      "preventReordering": true,
+      "fixedSize": true
     },
     "tabs": {
-      "fixedWidth": true,
-      "showCloseButton": "right",
-      "wrapTabs": false,
-      "tabSizing": "fixed",
-      "pinnedTabSizing": "normal"
+      "show": true,
+      "position": "top",
+      "sizing": "fixed",
+      "padding": 8,
+      "margin": 4,
+      "spacing": 6,
+      "locked": true,
+      "preventClosing": true,
+      "preventMoving": true
     },
     "panels": {
-      "splitSizing": "distribute",
-      "centeredLayoutAutoResize": false,
-      "closeEmptyGroups": false,
-      "revealIfOpen": true
-    },
-    "appearance": {
-      "consistentPadding": true,
-      "treeIndent": 8,
-      "listPadding": 4,
-      "renderIndentGuides": "always"
-    },
-    "terminal": {
-      "tabsEnabled": true,
-      "hideCondition": "never",
-      "showActiveTerminal": "always"
+      "terminal": {
+        "position": "bottom",
+        "size": 0.3,
+        "locked": true,
+        "preventResize": true
+      },
+      "problems": {
+        "position": "bottom",
+        "size": 0.1,
+        "locked": true,
+        "preventResize": true
+      }
     },
     "window": {
-      "restoreWindows": "all",
-      "restoreFullscreen": true,
-      "newWindowDimensions": "inherit"
+      "restoreLayout": true,
+      "preventManualResize": true,
+      "fixedDimensions": true,
+      "borderSpacing": 12
     }
   },
   "persistence": {
-    "restoreViewState": true,
-    "enablePreview": false,
-    "enablePreviewFromQuickOpen": false,
-    "openPositioning": "first"
+    "saveOnExit": true,
+    "restoreOnStartup": true,
+    "enforceLayout": true,
+    "preventUserChanges": true
+  },
+  "appearance": {
+    "theme": "dark",
+    "fontFamily": "Consolas, 'Courier New', monospace",
+    "fontSize": 14,
+    "lineHeight": 1.4
   }
 }

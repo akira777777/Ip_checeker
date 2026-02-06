@@ -4211,3 +4211,56 @@ body.light-theme .security-timeline-event.info {
         transition: opacity 0.2s ease !important;
     }
 }
+
+/* Fixed panel layout for three equal panels */
+.fixed-panel-layout {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr 1fr !important;
+    gap: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.fixed-panel-layout > * {
+    flex: 1 !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    width: auto !important;
+    transition: none !important;
+    position: static !important;
+}
+
+/* Prevent dynamic content insertion */
+.fixed-panel-layout::before,
+.fixed-panel-layout::after {
+    content: none !important;
+    display: none !important;
+}
+
+/* Lock panel sizes */
+.locked-panel {
+    resize: none !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+}
+
+.locked-panel > * {
+    pointer-events: auto !important;
+}
+
+/* Equal spacing guarantee */
+.equal-spacing {
+    justify-content: space-between !important;
+    align-items: stretch !important;
+}
+
+/* Prevent auto-generation of elements */
+.no-auto-generation * {
+    content: unset !important;
+}
+
+.no-auto-generation::before,
+.no-auto-generation::after {
+    display: none !important;
+    content: none !important;
+}

@@ -1,0 +1,183 @@
+{
+    // ==========================================
+    // БЕЗОПАСНОСТЬ И ПРАВА АДМИНИСТРАТОРА (2026)
+    // ==========================================
+    // Разрешение локальной загрузки сервера для offline-окружений
+    "remote.SSH.allowLocalServerDownload": true,
+    "remote.SSH.localServerDownload": "always",
+    // Настройки для повышенных привилегий в терминале
+    "terminal.integrated.defaultProfile.windows": "PowerShell",
+    "terminal.integrated.profiles.windows": {
+        "PowerShell": {
+            "source": "PowerShell",
+            "args": [
+                "-ExecutionPolicy",
+                "Bypass",
+                "-NoExit"
+            ]
+        },
+        "PowerShell Admin": {
+            "source": "PowerShell",
+            "args": [
+                "-ExecutionPolicy",
+                "Bypass",
+                "-NoExit",
+                "-Command",
+                "Start-Process powershell -Verb runAs -Wait"
+            ]
+        },
+        "Command Prompt Admin": {
+            "path": "C:\\Windows\\System32\\cmd.exe",
+            "args": [
+                "/k",
+                "runas /user:administrator cmd"
+            ]
+        }
+    },
+    // ==========================================
+    // REMOTE SSH - АДМИНИСТРАТИВНЫЙ ДОСТУП
+    // ==========================================
+    // Показывать терминал входа для ввода паролей/2FA
+    "remote.SSH.showLoginTerminal": true,
+    "remote.SSH.useLocalServer": false,
+    // Расширения по умолчанию для удаленных хостов
+    "remote.SSH.defaultExtensions": [
+        "eamodio.gitlens",
+        "mutantdino.resourcemonitor",
+        "ms-vscode.powershell",
+        "ms-python.python"
+    ],
+    // Платформа для Windows-хостов (важно для администрирования)
+    "remote.SSH.remotePlatform": {
+        "windows-host": "windows",
+        "linux-host": "linux"
+    },
+    // Unix sockets для безопасности на multi-user серверах
+    "remote.SSH.remoteServerListenOnSocket": true,
+    // ==========================================
+    // DEV CONTAINERS - ПРАВА АДМИНИСТРАТОРА
+    // ==========================================
+    // Настройки для контейнеров с правами root
+    "devcontainers.defaultExtensions": [
+        "ms-vscode.powershell",
+        "ms-azuretools.vscode-docker"
+    ],
+    // ==========================================
+    // АВТОМАТИЗАЦИЯ И ПРОИЗВОДИТЕЛЬНОСТЬ
+    // ==========================================
+    // Автосохранение для быстрой работы
+    "files.autoSave": "afterDelay",
+    "files.autoSaveDelay": 1000,
+    // Автоматическое обновление расширений
+    "extensions.autoUpdate": true,
+    "extensions.autoCheckUpdates": true,
+    // Git автоматизация
+    "git.autofetch": true,
+    "git.enableSmartCommit": true,
+    "git.confirmSync": false,
+    "git.enableCommitSigning": true,
+    // Смарт-коммиты без подтверждения
+    "git.confirmCommit": false,
+    "git.allowForcePush": true,
+    // ==========================================
+    // ТЕРМИНАЛ И КОМАНДНАЯ СТРОКА
+    // ==========================================
+    "terminal.integrated.fontFamily": "CaskaydiaCove NFM, MesloLGLDZ Nerd Font, Consolas",
+    "terminal.integrated.fontSize": 12,
+    "terminal.integrated.cursorStyle": "line",
+    "terminal.integrated.cursorBlinking": true,
+    // Разрешить выполнение задач без подтверждения
+    "task.verboseLogging": true,
+    "terminal.integrated.enablePersistentSessions": false,
+    // ==========================================
+    // ОТЛАДКА И ЗАПУСК
+    // ==========================================
+    // Остановка при ошибках задач
+    "debug.onTaskErrors": "abort",
+    "debug.console.acceptSuggestionOnEnter": "on",
+    // ==========================================
+    // РЕДАКТОР ДЛЯ АДМИН-СКРИПТОВ
+    // ==========================================
+    "editor.formatOnSave": true,
+    "editor.renderWhitespace": "boundary",
+    "editor.rulers": [
+        80,
+        120
+    ],
+    "editor.wordWrap": "off",
+    "editor.minimap.enabled": true,
+    "editor.stickyScroll.enabled": true,
+    "editor.cursorSmoothCaretAnimation": "on",
+    "editor.showFoldingControls": "always",
+    "editor.foldingImportsByDefault": true,
+    // Ассоциации файлов для админ-скриптов
+    "files.associations": {
+        "*.ps1": "powershell",
+        "*.psm1": "powershell",
+        "*.psd1": "powershell",
+        "*.yml": "yaml",
+        "*.yaml": "yaml",
+        "*.tf": "terraform",
+        "*.tfvars": "terraform",
+        "Dockerfile*": "dockerfile",
+        "*.sh": "shellscript",
+        "*.bash": "shellscript",
+        "*.zsh": "shellscript"
+    },
+    // ==========================================
+    // ИНТЕРФЕЙС И НАВИГАЦИЯ
+    // ==========================================
+    "workbench.statusBar.visible": true,
+    "workbench.layoutControl.enabled": false,
+    "window.commandCenter": false,
+    "breadcrumbs.enabled": true,
+    // ==========================================
+    // БЕЗОПАСНОСТЬ
+    // ==========================================
+    "security.workspace.trust.enabled": true,
+    "security.workspace.trust.startupPrompt": "always",
+    "security.promptForLocalFileProtocolHandling": false,
+    // ==========================================
+    // AI И АВТОДОПОЛНЕНИЕ (2026)
+    // ==========================================
+    "github.copilot.enable": {
+        "*": true,
+        "plaintext": true,
+        "markdown": true,
+        "scminput": true
+    },
+    "github.copilot.editor.enableAutoCompletions": true,
+    "editor.inlineSuggest.enabled": true,
+    // ==========================================
+    // СПЕЦИФИЧНЫЕ НАСТРОЙКИ ДЛЯ ЯЗЫКОВ
+    // ==========================================
+    "[powershell]": {
+        "editor.defaultFormatter": "ms-vscode.powershell",
+        "editor.formatOnSave": true
+    },
+    "[yaml]": {
+        "editor.defaultFormatter": "redhat.vscode-yaml",
+        "editor.formatOnSave": true
+    },
+    "[json]": {
+        "editor.defaultFormatter": "vscode.json-language-features",
+        "editor.formatOnSave": true
+    },
+    "[jsonc]": {
+        "editor.defaultFormatter": "vscode.json-language-features"
+    },
+    "[dockerfile]": {
+        "editor.defaultFormatter": "ms-azuretools.vscode-docker"
+    },
+    // ==========================================
+    // ДОПОЛНИТЕЛЬНЫЕ РАСШИРЕНИЯ ДЛЯ АДМИНИСТРИРОВАНИЯ
+    // ==========================================
+    // Настройки для Docker
+    "docker.showStartPage": false,
+    // Настройки для Kubernetes
+    "vs-kubernetes": {
+        "vs-kubernetes.minikube-path": "",
+        "vs-kubernetes.kubectl-path": "",
+        "vs-kubernetes.helm-path": ""
+    }
+}

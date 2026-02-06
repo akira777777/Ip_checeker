@@ -30,7 +30,7 @@
         "workbench.editor.tabSpacing": 6,
         "workbench.editor.groupPadding": 8,
         // Полная блокировка перемещения
-        "workbench.layoutControl.enabled": true,
+        "workbench.layoutControl.enabled": false,
         "workbench.layoutControl.type": "menu",
         "workbench.statusBar.visible": true,
         // Фиксированные размеры панелей С РАВНЫМИ ОТСТУПАМИ
