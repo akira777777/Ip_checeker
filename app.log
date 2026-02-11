@@ -1422,3 +1422,11 @@
 2026-02-11 22:41:00,720 - __main__ - INFO - [app.py:1086] - Starting IP Checker Pro v2.3.1-improved
 2026-02-11 22:41:00,720 - __main__ - INFO - [app.py:1087] - Workers: 20
 2026-02-11 22:41:00,720 - __main__ - INFO - [app.py:1088] - Cache sizes: Geo=5000, Conn=100
+2026-02-11 23:38:43,390 - __main__ - INFO - [app.py:120] - Initialized geo cache: max_size=5000, max_memory=50MB
+2026-02-11 23:38:43,390 - __main__ - INFO - [app.py:120] - Initialized whois cache: max_size=2000, max_memory=20MB
+2026-02-11 23:38:43,391 - __main__ - INFO - [app.py:120] - Initialized dns cache: max_size=3000, max_memory=10MB
+2026-02-11 23:38:43,391 - __main__ - INFO - [app.py:120] - Initialized connections cache: max_size=100, max_memory=5MB
+2026-02-11 23:38:43,395 - __main__ - INFO - [app.py:381] - HTTP Connection Pool initialized
+2026-02-11 23:38:43,398 - __main__ - INFO - [app.py:1086] - Starting IP Checker Pro v2.3.1-improved
+2026-02-11 23:38:43,398 - __main__ - INFO - [app.py:1087] - Workers: 20
+2026-02-11 23:38:43,398 - __main__ - INFO - [app.py:1088] - Cache sizes: Geo=5000, Conn=100
