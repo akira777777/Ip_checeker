@@ -1,0 +1,90 @@
+# IP Checker Pro - Docker Compose Configuration
+# ================================================
+
+version: '3.8'
+
+services:
+  ip-checker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ip-checker-pro
+    restart: unless-stopped
+    
+    # Environment configuration
+    environment:
+      # Flask settings
+      - FLASK_DEBUG=false
+      - FLASK_HOST=0.0.0.0
+      - FLASK_PORT=5000
+      
+      # Security settings
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - LOCAL_ONLY=false
+      - FORCE_HTTPS=false
+      
+      # Rate limiting
+      - RATE_LIMIT_STORAGE=memory://
+      
+      # Cache settings
+      - GEO_CACHE_TTL=3600
+      - GEO_LOOKUP_LIMIT=50
+      
+      # Logging
+      - LOG_LEVEL=INFO
+    
+    # Port mapping
+    ports:
+      - "5000:5000"
+    
+    # Volume for persistent cache (optional)
+    volumes:
+      - ./cache:/app/cache
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+    
+    read_only: false
+    
+    # Networks
+    networks:
+      - ip-checker-network
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  ip-checker-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# Optional: Add Redis for distributed caching
+#  redis:
+#    image: redis:7-alpine
+#    container_name: ip-checker-redis
+#    restart: unless-stopped
+#    volumes:
+#      - redis-data:/data
+#    networks:
+#      - ip-checker-network
+#
+#volumes:
+#  redis-data:
