@@ -1414,3 +1414,11 @@
 2026-02-11 21:58:11,549 - __main__ - ERROR - [app.py:450] - ip-api.com error for 47.253.46.181: 403 Client Error: Forbidden for url: https://ip-api.com/json/47.253.46.181?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
 2026-02-11 21:58:11,625 - __main__ - ERROR - [app.py:473] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
 2026-02-11 21:58:11,652 - __main__ - ERROR - [app.py:450] - ip-api.com error for 198.41.30.195: 403 Client Error: Forbidden for url: https://ip-api.com/json/198.41.30.195?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-11 22:41:00,711 - __main__ - INFO - [app.py:120] - Initialized geo cache: max_size=5000, max_memory=50MB
+2026-02-11 22:41:00,712 - __main__ - INFO - [app.py:120] - Initialized whois cache: max_size=2000, max_memory=20MB
+2026-02-11 22:41:00,712 - __main__ - INFO - [app.py:120] - Initialized dns cache: max_size=3000, max_memory=10MB
+2026-02-11 22:41:00,713 - __main__ - INFO - [app.py:120] - Initialized connections cache: max_size=100, max_memory=5MB
+2026-02-11 22:41:00,717 - __main__ - INFO - [app.py:381] - HTTP Connection Pool initialized
+2026-02-11 22:41:00,720 - __main__ - INFO - [app.py:1086] - Starting IP Checker Pro v2.3.1-improved
+2026-02-11 22:41:00,720 - __main__ - INFO - [app.py:1087] - Workers: 20
+2026-02-11 22:41:00,720 - __main__ - INFO - [app.py:1088] - Cache sizes: Geo=5000, Conn=100
