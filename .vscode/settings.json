@@ -9,7 +9,7 @@
   
   // РАВНОЕ РАСПРЕДЕЛЕНИЕ ПРОСТРАНСТВА И ПОСТОЯННАЯ КОНФИГУРАЦИЯ
   "workbench.panel.defaultLocation": "bottom",
-  "workbench.sideBar.location": "right",
+  "workbench.sideBar.location": "left",
   "workbench.statusBar.visible": true,
   
   // ПОЛНАЯ БЛОКИРОВКА перемещения элементов С РАВНЫМИ ОТСТУПАМИ
