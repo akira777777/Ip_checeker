@@ -62,6 +62,50 @@ const PerfUtils = {
             cache.set(key, { value: result, time: Date.now() });
             return result;
         };
+    },
+    
+    // Batch requests to reduce API calls
+    batchRequests(requests, batchSize = 5, delay = 100) {
+        return new Promise((resolve) => {
+            const results = [];
+            let currentIndex = 0;
+            
+            const processBatch = () => {
+                if (currentIndex >= requests.length) {
+                    Promise.all(results).then(allResults => {
+                        resolve(allResults.flat());
+                    });
+                    return;
+                }
+                
+                const batch = requests.slice(currentIndex, currentIndex + batchSize);
+                const batchPromise = Promise.all(batch.map(req => req()));
+                results.push(batchPromise);
+                
+                currentIndex += batchSize;
+                
+                if (currentIndex < requests.length) {
+                    setTimeout(processBatch, delay);
+                } else {
+                    Promise.all(results).then(allResults => {
+                        resolve(allResults.flat());
+                    });
+                }
+            };
+            
+            processBatch();
+        });
+    },
+    
+    // Debounced resize observer for performance
+    debouncedResizeObserver(callback, delay = 250) {
+        let timeoutId;
+        const debouncedCallback = () => {
+            window.clearTimeout(timeoutId);
+            timeoutId = window.setTimeout(callback, delay);
+        };
+        
+        return new ResizeObserver(debouncedCallback);
     }
 };
 

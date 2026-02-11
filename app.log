@@ -1485,3 +1485,92 @@
 2026-02-11 23:50:30,521 - __main__ - INFO - [app.py:1190] - Starting IP Checker Pro v2.3.1-improved
 2026-02-11 23:50:30,521 - __main__ - INFO - [app.py:1191] - Workers: 20
 2026-02-11 23:50:30,521 - __main__ - INFO - [app.py:1192] - Cache sizes: Geo=5000, Conn=100
+2026-02-12 00:03:33,146 - __main__ - ERROR - [app.py:903] - Performance metrics error: 'Counter' object has no attribute '_value'
+2026-02-12 00:03:37,088 - __main__ - ERROR - [app.py:903] - Performance metrics error: 'Counter' object has no attribute '_value'
+2026-02-12 00:04:38,677 - __main__ - INFO - [app.py:123] - Initialized geo cache: max_size=5000, max_memory=50MB
+2026-02-12 00:04:38,678 - __main__ - INFO - [app.py:123] - Initialized whois cache: max_size=2000, max_memory=20MB
+2026-02-12 00:04:38,678 - __main__ - INFO - [app.py:123] - Initialized dns cache: max_size=3000, max_memory=10MB
+2026-02-12 00:04:38,678 - __main__ - INFO - [app.py:123] - Initialized connections cache: max_size=100, max_memory=5MB
+2026-02-12 00:04:38,682 - __main__ - INFO - [app.py:406] - HTTP Connection Pool initialized
+2026-02-12 00:04:51,108 - __main__ - INFO - [app.py:1190] - Starting IP Checker Pro v2.3.1-improved
+2026-02-12 00:04:51,108 - __main__ - INFO - [app.py:1191] - Workers: 20
+2026-02-12 00:04:51,108 - __main__ - INFO - [app.py:1192] - Cache sizes: Geo=5000, Conn=100
+2026-02-12 00:05:01,485 - __main__ - ERROR - [app.py:903] - Performance metrics error: list index out of range
+2026-02-12 00:06:04,845 - __main__ - INFO - [app.py:123] - Initialized geo cache: max_size=5000, max_memory=50MB
+2026-02-12 00:06:04,845 - __main__ - INFO - [app.py:123] - Initialized whois cache: max_size=2000, max_memory=20MB
+2026-02-12 00:06:04,846 - __main__ - INFO - [app.py:123] - Initialized dns cache: max_size=3000, max_memory=10MB
+2026-02-12 00:06:04,846 - __main__ - INFO - [app.py:123] - Initialized connections cache: max_size=100, max_memory=5MB
+2026-02-12 00:06:04,849 - __main__ - INFO - [app.py:406] - HTTP Connection Pool initialized
+2026-02-12 00:06:17,277 - __main__ - INFO - [app.py:1190] - Starting IP Checker Pro v2.3.1-improved
+2026-02-12 00:06:17,277 - __main__ - INFO - [app.py:1191] - Workers: 20
+2026-02-12 00:06:17,277 - __main__ - INFO - [app.py:1192] - Cache sizes: Geo=5000, Conn=100
+2026-02-12 00:07:01,587 - __main__ - ERROR - [app.py:585] - ip-api.com error for 8.8.8.8: 403 Client Error: Forbidden for url: https://ip-api.com/json/8.8.8.8?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:07:01,984 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:07:02,033 - __main__ - ERROR - [app.py:585] - ip-api.com error for 1.0.0.1: 403 Client Error: Forbidden for url: https://ip-api.com/json/1.0.0.1?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:07:02,476 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:07:02,540 - __main__ - ERROR - [app.py:585] - ip-api.com error for 1.1.1.1: 403 Client Error: Forbidden for url: https://ip-api.com/json/1.1.1.1?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:07:02,831 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:13:14,313 - __main__ - INFO - [app.py:123] - Initialized geo cache: max_size=5000, max_memory=50MB
+2026-02-12 00:13:14,314 - __main__ - INFO - [app.py:123] - Initialized whois cache: max_size=2000, max_memory=20MB
+2026-02-12 00:13:14,314 - __main__ - INFO - [app.py:123] - Initialized dns cache: max_size=3000, max_memory=10MB
+2026-02-12 00:13:14,314 - __main__ - INFO - [app.py:123] - Initialized connections cache: max_size=100, max_memory=5MB
+2026-02-12 00:13:14,317 - __main__ - INFO - [app.py:406] - HTTP Connection Pool initialized
+2026-02-12 00:13:26,745 - __main__ - INFO - [app.py:1190] - Starting IP Checker Pro v2.3.1-improved
+2026-02-12 00:13:26,745 - __main__ - INFO - [app.py:1191] - Workers: 20
+2026-02-12 00:13:26,745 - __main__ - INFO - [app.py:1192] - Cache sizes: Geo=5000, Conn=100
+2026-02-12 00:13:30,053 - __main__ - ERROR - [app.py:585] - ip-api.com error for 8.211.12.32: 403 Client Error: Forbidden for url: https://ip-api.com/json/8.211.12.32?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:13:30,361 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:13:30,398 - __main__ - ERROR - [app.py:585] - ip-api.com error for 8.211.41.202: 403 Client Error: Forbidden for url: https://ip-api.com/json/8.211.41.202?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:13:30,698 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:13:30,732 - __main__ - ERROR - [app.py:585] - ip-api.com error for 8.211.19.0: 403 Client Error: Forbidden for url: https://ip-api.com/json/8.211.19.0?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:13:31,036 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:13:31,070 - __main__ - ERROR - [app.py:585] - ip-api.com error for 64.233.180.188: 403 Client Error: Forbidden for url: https://ip-api.com/json/64.233.180.188?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:13:31,385 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:13:31,419 - __main__ - ERROR - [app.py:585] - ip-api.com error for 127.0.0.1: 403 Client Error: Forbidden for url: https://ip-api.com/json/127.0.0.1?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:13:31,706 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:13:31,739 - __main__ - ERROR - [app.py:585] - ip-api.com error for 149.154.167.151: 403 Client Error: Forbidden for url: https://ip-api.com/json/149.154.167.151?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:13:32,032 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:13:32,067 - __main__ - ERROR - [app.py:585] - ip-api.com error for 34.158.1.133: 403 Client Error: Forbidden for url: https://ip-api.com/json/34.158.1.133?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:13:32,356 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:13:32,390 - __main__ - ERROR - [app.py:585] - ip-api.com error for 142.251.40.138: 403 Client Error: Forbidden for url: https://ip-api.com/json/142.251.40.138?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:13:32,675 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:13:32,708 - __main__ - ERROR - [app.py:585] - ip-api.com error for 8.209.67.8: 403 Client Error: Forbidden for url: https://ip-api.com/json/8.209.67.8?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:13:32,999 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:13:33,034 - __main__ - ERROR - [app.py:585] - ip-api.com error for 47.245.130.77: 403 Client Error: Forbidden for url: https://ip-api.com/json/47.245.130.77?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:13:33,321 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:13:33,355 - __main__ - ERROR - [app.py:585] - ip-api.com error for 47.88.94.93: 403 Client Error: Forbidden for url: https://ip-api.com/json/47.88.94.93?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:13:33,640 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:13:33,675 - __main__ - ERROR - [app.py:585] - ip-api.com error for 8.211.15.87: 403 Client Error: Forbidden for url: https://ip-api.com/json/8.211.15.87?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:13:33,961 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:13:33,994 - __main__ - ERROR - [app.py:585] - ip-api.com error for 52.204.121.2: 403 Client Error: Forbidden for url: https://ip-api.com/json/52.204.121.2?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:13:34,281 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:13:34,314 - __main__ - ERROR - [app.py:585] - ip-api.com error for 44.217.251.50: 403 Client Error: Forbidden for url: https://ip-api.com/json/44.217.251.50?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:13:34,598 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:13:34,632 - __main__ - ERROR - [app.py:585] - ip-api.com error for 20.215.74.200: 403 Client Error: Forbidden for url: https://ip-api.com/json/20.215.74.200?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:13:34,920 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:13:34,980 - __main__ - ERROR - [app.py:585] - ip-api.com error for 203.119.238.240: 403 Client Error: Forbidden for url: https://ip-api.com/json/203.119.238.240?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:13:35,264 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:13:35,297 - __main__ - ERROR - [app.py:585] - ip-api.com error for 8.209.107.236: 403 Client Error: Forbidden for url: https://ip-api.com/json/8.209.107.236?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:13:35,591 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:13:35,625 - __main__ - ERROR - [app.py:585] - ip-api.com error for 20.190.151.68: 403 Client Error: Forbidden for url: https://ip-api.com/json/20.190.151.68?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:13:35,910 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:13:35,977 - __main__ - ERROR - [app.py:585] - ip-api.com error for 18.210.248.29: 403 Client Error: Forbidden for url: https://ip-api.com/json/18.210.248.29?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:13:36,270 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:13:36,306 - __main__ - ERROR - [app.py:585] - ip-api.com error for 35.186.224.34: 403 Client Error: Forbidden for url: https://ip-api.com/json/35.186.224.34?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:13:36,590 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:13:36,624 - __main__ - ERROR - [app.py:585] - ip-api.com error for 198.11.173.22: 403 Client Error: Forbidden for url: https://ip-api.com/json/198.11.173.22?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:13:36,913 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:13:36,978 - __main__ - ERROR - [app.py:585] - ip-api.com error for 79.127.206.234: 403 Client Error: Forbidden for url: https://ip-api.com/json/79.127.206.234?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:13:37,267 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:13:37,301 - __main__ - ERROR - [app.py:585] - ip-api.com error for 142.250.217.138: 403 Client Error: Forbidden for url: https://ip-api.com/json/142.250.217.138?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:13:37,595 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:13:37,629 - __main__ - ERROR - [app.py:585] - ip-api.com error for 99.80.65.219: 403 Client Error: Forbidden for url: https://ip-api.com/json/99.80.65.219?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:13:38,043 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:13:38,079 - __main__ - ERROR - [app.py:585] - ip-api.com error for 52.22.119.135: 403 Client Error: Forbidden for url: https://ip-api.com/json/52.22.119.135?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:13:38,529 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:13:42,397 - __main__ - ERROR - [app.py:585] - ip-api.com error for 8.8.8.8: 403 Client Error: Forbidden for url: https://ip-api.com/json/8.8.8.8?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:13:42,686 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:13:42,725 - __main__ - ERROR - [app.py:585] - ip-api.com error for 1.1.1.1: 403 Client Error: Forbidden for url: https://ip-api.com/json/1.1.1.1?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:13:43,124 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
+2026-02-12 00:13:43,188 - __main__ - ERROR - [app.py:585] - ip-api.com error for 1.0.0.1: 403 Client Error: Forbidden for url: https://ip-api.com/json/1.0.0.1?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query
+2026-02-12 00:13:43,474 - __main__ - ERROR - [app.py:608] - ipapi.co error: Too many rapid requests. Please try again in some time or sign up for a paid plan at https://ipapi.co/pricing
