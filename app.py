@@ -46,6 +46,7 @@ from flask import (
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_talisman import Talisman
+from flask_caching import Cache
 
 # Logging setup
 logger = logging.getLogger(__name__)
@@ -196,11 +197,44 @@ class SmartCache:
                 'max_size': self._max_size
             }
 
-# Initialize caches
+# Initialize caches with hybrid approach (Redis + in-memory for critical paths)
 GEO_CACHE = SmartCache(max_size=5000, default_ttl=3600, max_memory_mb=50, name="geo")
 WHOIS_CACHE = SmartCache(max_size=2000, default_ttl=86400, max_memory_mb=20, name="whois")
 DNS_CACHE = SmartCache(max_size=3000, default_ttl=1800, max_memory_mb=10, name="dns")
 CONNECTIONS_CACHE = SmartCache(max_size=100, default_ttl=5, max_memory_mb=5, name="connections")
+
+# Hybrid cache decorator for Flask-Cache + SmartCache
+def hybrid_cache(timeout=None, key_prefix=''):
+    """Decorator that uses both Redis and in-memory caching"""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            # Generate cache key
+            cache_key = f"{key_prefix}:{hash(str(args) + str(sorted(kwargs.items())))}"
+            
+            # Try Redis cache first
+            if cache_config['CACHE_TYPE'] != 'simple':
+                cached_result = cache.get(cache_key)
+                if cached_result is not None:
+                    return cached_result
+            
+            # Try in-memory cache
+            memory_result = GEO_CACHE.get(cache_key)  # Using GEO_CACHE as example
+            if memory_result is not None:
+                return memory_result
+            
+            # Execute function
+            result = f(*args, **kwargs)
+            
+            # Cache in both layers
+            if timeout:
+                if cache_config['CACHE_TYPE'] != 'simple':
+                    cache.set(cache_key, result, timeout=timeout)
+                GEO_CACHE.set(cache_key, result, ttl=timeout)
+            
+            return result
+        return decorated_function
+    return decorator
 
 # ============================================================================
 # FLASK APP SETUP
@@ -231,9 +265,26 @@ Talisman(
 limiter = Limiter(
     app=app,
     key_func=get_remote_address,
-    default_limits=["300 per day", "100 per hour"],
+    default_limits=[os.environ.get('RATE_LIMIT_DEFAULT', "300 per day, 100 per hour")],
     storage_uri=os.environ.get('RATE_LIMIT_STORAGE', 'memory://')
 )
+
+# Caching
+cache_config = {
+    'CACHE_TYPE': os.environ.get('CACHE_TYPE', 'simple'),
+    'CACHE_DEFAULT_TIMEOUT': int(os.environ.get('CACHE_TTL', 3600)),
+    'CACHE_KEY_PREFIX': 'ipchecker_',
+}
+
+if os.environ.get('CACHE_TYPE') == 'redis':
+    cache_config.update({
+        'CACHE_REDIS_URL': os.environ.get('CACHE_REDIS_URL', 'redis://localhost:6379/0'),
+        'CACHE_REDIS_HOST': os.environ.get('CACHE_REDIS_HOST', 'localhost'),
+        'CACHE_REDIS_PORT': int(os.environ.get('CACHE_REDIS_PORT', 6379)),
+        'CACHE_REDIS_DB': int(os.environ.get('CACHE_REDIS_DB', 0)),
+    })
+
+cache = Cache(app, config=cache_config)
 
 # ============================================================================
 # CONSTANTS
