@@ -48,6 +48,13 @@ from flask_limiter.util import get_remote_address
 from flask_talisman import Talisman
 from flask_caching import Cache
 
+# Import circuit breaker
+from circuit_breaker import (
+    CircuitBreaker, 
+    ServiceCircuitBreakers,
+    geolocation_circuit_breaker
+)
+
 # Logging setup
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -313,8 +320,26 @@ LOCAL_NETWORKS = [
 GEO_API_URL = "https://ip-api.com/json/{ip}?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query"
 
 # ============================================================================
-# IMPROVED HTTP SESSION
+# CIRCUIT BREAKER CONFIGURATION
 # ============================================================================
+
+# Circuit breaker for geolocation services
+geo_circuit_breaker = ServiceCircuitBreakers.geolocation_api(
+    fallback_function=lambda ip: {
+        'status': 'error',
+        'message': 'Geolocation service temporarily unavailable',
+        'ip': ip,
+        'cached': False
+    }
+)
+
+# Circuit breaker for external APIs
+external_api_breaker = ServiceCircuitBreakers.external_api(
+    fallback_function=lambda *args, **kwargs: {
+        'status': 'error',
+        'message': 'External service temporarily unavailable'
+    }
+)
 
 class ConnectionPool:
     """Managed HTTP connection pool with retry logic."""
