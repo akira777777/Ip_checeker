@@ -55,6 +55,9 @@ from circuit_breaker import (
     geolocation_circuit_breaker
 )
 
+# Import performance monitoring
+from monitoring import PerformanceMonitor
+
 # Logging setup
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -342,7 +345,7 @@ external_api_breaker = ServiceCircuitBreakers.external_api(
 )
 
 class ConnectionPool:
-    """Managed HTTP connection pool with retry logic."""
+    """Managed HTTP connection pool with retry logic and performance optimizations."""
     
     _instance = None
     _lock = threading.Lock()
@@ -359,23 +362,45 @@ class ConnectionPool:
         if self._initialized:
             return
         
+        # Create session with optimized connection pooling
         self._session = requests.Session()
-        adapter = requests.adapters.HTTPAdapter(
-            pool_connections=50,
-            pool_maxsize=100,
+        
+        # Import HTTPAdapter directly to avoid any potential import issues
+        from requests.adapters import HTTPAdapter
+        
+        # Configure adapters with optimized settings
+        https_adapter = HTTPAdapter(
+            pool_connections=int(os.environ.get('CONNECTION_POOL_SIZE', 50)),
+            pool_maxsize=int(os.environ.get('CONNECTION_MAXSIZE', 100)),
             max_retries=3,
             pool_block=False
         )
-        self._session.mount('https://', adapter)
-        self._session.mount('http://', adapter)
         
+        http_adapter = HTTPAdapter(
+            pool_connections=int(os.environ.get('CONNECTION_POOL_SIZE', 50)),
+            pool_maxsize=int(os.environ.get('CONNECTION_MAXSIZE', 100)),
+            max_retries=3,
+            pool_block=False
+        )
+        
+        self._session.mount('https://', https_adapter)
+        self._session.mount('http://', http_adapter)
+        
+        # Set optimized headers
         self._session.headers.update({
             'Accept': 'application/json, text/plain, */*',
             'Accept-Encoding': 'gzip, deflate, br',
             'Accept-Language': 'en-US,en;q=0.9',
             'Connection': 'keep-alive',
-            'User-Agent': f'IPCheckerPro/{APP_VERSION} (Security Tool)'
+            'User-Agent': f'IPCheckerPro/{APP_VERSION} (Security Tool)',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
         })
+        
+        # Track connection pool stats
+        self._request_count = 0
+        self._error_count = 0
+        self._total_response_time = 0
         
         self._initialized = True
         logger.info("HTTP Connection Pool initialized")
@@ -385,25 +410,56 @@ class ConnectionPool:
         return self._session
     
     def get(self, url: str, timeout: Tuple[int, int] = (3, 10), retries: int = 3, **kwargs) -> requests.Response:
+        start_time = time.time()
         last_error = None
         
         for attempt in range(retries):
             try:
                 response = self._session.get(url, timeout=timeout, **kwargs)
+                
+                # Record performance metrics
+                response_time = time.time() - start_time
+                self._request_count += 1
+                self._total_response_time += response_time
+                
                 return response
             except requests.exceptions.Timeout as e:
                 last_error = e
+                self._error_count += 1
                 logger.warning(f"Timeout on {url} (attempt {attempt + 1}/{retries})")
                 time.sleep(0.5 * (attempt + 1))
             except requests.exceptions.ConnectionError as e:
                 last_error = e
+                self._error_count += 1
                 logger.warning(f"Connection error on {url} (attempt {attempt + 1}/{retries})")
                 time.sleep(0.5 * (attempt + 1))
             except Exception as e:
+                self._error_count += 1
                 logger.error(f"Unexpected error on {url}: {e}")
                 raise
         
         raise last_error if last_error else Exception("Max retries exceeded")
+    
+    def get_stats(self) -> Dict[str, Any]:
+        """Get connection pool statistics."""
+        avg_response_time = (
+            self._total_response_time / self._request_count 
+            if self._request_count > 0 
+            else 0
+        )
+        
+        return {
+            'request_count': self._request_count,
+            'error_count': self._error_count,
+            'success_rate': (
+                (self._request_count - self._error_count) / self._request_count * 100
+                if self._request_count > 0
+                else 100
+            ),
+            'avg_response_time': avg_response_time,
+            'pool_size': int(os.environ.get('CONNECTION_POOL_SIZE', 50)),
+            'pool_maxsize': int(os.environ.get('CONNECTION_MAXSIZE', 100))
+        }
     
     def close(self):
         if self._session:
@@ -412,6 +468,9 @@ class ConnectionPool:
 
 # Global connection pool
 http_pool = ConnectionPool()
+
+# Performance monitor
+monitor = PerformanceMonitor(port=int(os.environ.get('PROMETHEUS_PORT', 9090)))
 
 # ============================================================================
 # UTILITY FUNCTIONS
@@ -530,7 +589,7 @@ def _get_geolocation_ipapi_co(ip: str) -> Dict:
     """Get geolocation from ipapi.co."""
     try:
         location = ipapi.location(ip)
-        if location and "error" not in location:
+        if location and isinstance(location, dict) and "error" not in location:
             return {
                 "ip": ip,
                 "status": "success",
@@ -734,6 +793,11 @@ def precise_location_page():
     return render_template("precise_location.html")
 
 @app.before_request
+def before_request():
+    """Record request start time for performance monitoring."""
+    request.start_time = time.time()
+
+@app.before_request
 def enforce_local_only():
     """Enforce local-only access."""
     if not LOCAL_ONLY:
@@ -746,12 +810,22 @@ def enforce_local_only():
 
 @app.after_request
 def after_request(response):
-    """Add performance headers and compression."""
+    """Add performance headers, compression, and record metrics."""
     response.headers['X-App-Version'] = APP_VERSION
     response.headers['X-Cache-Stats'] = json.dumps({
         'geo': GEO_CACHE.stats(),
         'connections': CONNECTIONS_CACHE.stats()
     })
+    
+    # Record performance metrics
+    if hasattr(request, 'start_time'):
+        duration = time.time() - request.start_time
+        monitor.record_request(
+            endpoint=request.endpoint or 'unknown',
+            method=request.method,
+            duration=duration,
+            status_code=response.status_code
+        )
     
     # Compress JSON responses
     if response.content_type and 'application/json' in response.content_type:
@@ -798,6 +872,36 @@ def health():
     except Exception as e:
         logger.error(f"Health check error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route("/api/performance")
+def performance_metrics():
+    """Detailed performance metrics endpoint."""
+    try:
+        perf_report = monitor.get_performance_report()
+        
+        # Add cache statistics
+        perf_report['cache_stats'] = {
+            'geo': GEO_CACHE.stats(),
+            'dns': DNS_CACHE.stats(),
+            'connections': CONNECTIONS_CACHE.stats(),
+            'whois': WHOIS_CACHE.stats()
+        }
+        
+        # Add system resource usage
+        process = psutil.Process()
+        memory_info = process.memory_info()
+        
+        perf_report['system_resources'] = {
+            'memory_mb': round(memory_info.rss / 1024 / 1024, 2),
+            'cpu_percent': psutil.cpu_percent(interval=0.1),
+            'threads': process.num_threads(),
+            'connections': len(process.connections())
+        }
+        
+        return jsonify(perf_report)
+    except Exception as e:
+        logger.error(f"Performance metrics error: {e}")
+        return jsonify({"error": "Failed to get performance metrics", "message": str(e)}), 500
 
 @app.route("/api/investigate")
 @app.route("/api/scan")
