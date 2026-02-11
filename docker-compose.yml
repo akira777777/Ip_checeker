@@ -4,6 +4,32 @@
 version: '3.8'
 
 services:
+  # Redis Cache Service
+  redis:
+    image: redis:7-alpine
+    container_name: ip-checker-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - ip-checker-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 300M
+        reservations:
+          cpus: '0.1'
+          memory: 100M
+
+  # Main Application Service
   ip-checker:
     build:
       context: .
@@ -21,35 +47,59 @@ services:
       # Security settings
       - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
       - LOCAL_ONLY=false
-      - FORCE_HTTPS=false
+      - FORCE_HTTPS=true
       
-      # Rate limiting
-      - RATE_LIMIT_STORAGE=memory://
+      # Rate limiting with Redis
+      - RATE_LIMIT_STORAGE=redis://redis:6379/0
+      - RATE_LIMIT_DEFAULT=500 per day,200 per hour,50 per minute
       
-      # Cache settings
-      - GEO_CACHE_TTL=3600
-      - GEO_LOOKUP_LIMIT=50
+      # Cache settings with Redis
+      - CACHE_TYPE=redis
+      - CACHE_REDIS_URL=redis://redis:6379/1
+      - CACHE_TTL=3600
+      - CACHE_MAX_SIZE=50000
+      
+      # Geolocation settings
+      - GEO_CACHE_TTL=7200
+      - GEO_LOOKUP_LIMIT=100
+      - GEO_TIMEOUT=10
+      - GEO_MAX_RETRIES=3
+      
+      # Performance settings
+      - MAX_WORKERS=32
+      - MAX_BULK_LOOKUPS=200
+      - MAX_CONNECTIONS_SCAN=500
+      - CONNECTION_POOL_SIZE=100
+      - CONNECTION_MAXSIZE=200
       
       # Logging
       - LOG_LEVEL=INFO
+      - LOG_FILE=/var/log/ipchecker/app.log
+      
+      # Feature flags
+      - ENABLE_METRICS=true
+      - ENABLE_CACHING=true
+      - ENABLE_COMPRESSION=true
     
     # Port mapping
     ports:
       - "5000:5000"
     
-    # Volume for persistent cache (optional)
+    # Volumes
     volumes:
       - ./cache:/app/cache
+      - ./logs:/var/log/ipchecker
+      - ./gunicorn.conf.py:/app/gunicorn.conf.py
     
     # Resource limits
     deploy:
       resources:
         limits:
-          cpus: '1.0'
-          memory: 512M
+          cpus: '2.0'
+          memory: 1G
         reservations:
-          cpus: '0.25'
-          memory: 128M
+          cpus: '0.5'
+          memory: 256M
     
     # Security options
     security_opt:
@@ -61,13 +111,63 @@ services:
     networks:
       - ip-checker-network
     
+    # Dependencies
+    depends_on:
+      redis:
+        condition: service_healthy
+    
     # Health check
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/health')"]
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 30s
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: ip-checker-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - ip-checker
+    networks:
+      - ip-checker-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+  # Optional: PostgreSQL Database
+  # db:
+  #   image: postgres:15-alpine
+  #   container_name: ip-checker-db
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_DB: ipchecker
+  #     POSTGRES_USER: ipchecker
+  #     POSTGRES_PASSWORD: ${DB_PASSWORD:-change-me}
+  #   volumes:
+  #     - postgres-data:/var/lib/postgresql/data
+  #     - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+  #   networks:
+  #     - ip-checker-network
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U ipchecker"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
 
 networks:
   ip-checker-network:
@@ -76,15 +176,6 @@ networks:
       config:
         - subnet: 172.20.0.0/16
 
-# Optional: Add Redis for distributed caching
-#  redis:
-#    image: redis:7-alpine
-#    container_name: ip-checker-redis
-#    restart: unless-stopped
-#    volumes:
-#      - redis-data:/data
-#    networks:
-#      - ip-checker-network
-#
-#volumes:
-#  redis-data:
+volumes:
+  redis-data:
+  # postgres-data:
