@@ -709,6 +709,18 @@ const App = {
             includeGeolocation: document.getElementById("include-geolocation"),
             reportResults: document.getElementById("report-results"),
             exportButtons: document.getElementById("export-buttons"),
+
+            // Privacy audit
+            privacyScore: document.getElementById("privacy-score"),
+            privacyGrade: document.getElementById("privacy-grade"),
+            privacyWarnings: document.getElementById("privacy-warnings"),
+            privacyFailures: document.getElementById("privacy-failures"),
+            privacySummary: document.getElementById("privacy-summary"),
+            privacyChecks: document.getElementById("privacy-checks"),
+            webrtcStatus: document.getElementById("webrtc-status"),
+            webrtcPublic: document.getElementById("webrtc-public"),
+            webrtcPrivate: document.getElementById("webrtc-private"),
+            webrtcMessage: document.getElementById("webrtc-message"),
             
             // History
             historyList: document.getElementById("history-list"),
@@ -772,6 +784,10 @@ const App = {
         document.getElementById("btn-download-pdf")?.addEventListener("click", () =>
             notyf.info("PDF export coming soon")
         );
+
+        // Privacy audit buttons
+        document.getElementById("btn-privacy-audit")?.addEventListener("click", () => this.runPrivacyAudit());
+        document.getElementById("btn-webrtc-check")?.addEventListener("click", () => this.runWebRTCCheck());
 
         // History clear
         document.getElementById("clear-history")?.addEventListener("click", () => {
@@ -2243,6 +2259,10 @@ const App = {
         
         // Analytics or other tracking
         this.trackTabChange(tabId);
+
+        if (tabId === "privacy") {
+            this.runPrivacyAudit();
+        }
     },
 
     trackTabChange(tabId) {
@@ -3929,6 +3949,139 @@ const App = {
         notyf.success("Report downloaded");
     },
 
+    // Privacy audit
+    async runPrivacyAudit() {
+        this.setLoading(true);
+        try {
+            await this.runWebRTCCheck(true);
+            const data = await this.fetchJson("/api/privacy/audit");
+            this.renderPrivacyAudit(data);
+            notyf.success("Privacy audit completed");
+        } catch (err) {
+            notyf.error(`Privacy audit error: ${err.message || err}`);
+        } finally {
+            this.setLoading(false);
+        }
+    },
+
+    renderPrivacyAudit(data) {
+        if (!data) return;
+        const summary = data.summary || {};
+        if (this.el.privacyScore) this.el.privacyScore.textContent = summary.score ?? "-";
+        if (this.el.privacyGrade) this.el.privacyGrade.textContent = summary.grade ?? "-";
+        if (this.el.privacyWarnings) this.el.privacyWarnings.textContent = summary.warnings ?? "-";
+        if (this.el.privacyFailures) this.el.privacyFailures.textContent = summary.failures ?? "-";
+        if (this.el.privacySummary) {
+            this.el.privacySummary.textContent = `Last audit: ${this.formatDate(data.timestamp)}`;
+        }
+
+        if (this.el.privacyChecks) {
+            const checks = data.checks || [];
+            if (!checks.length) {
+                this.el.privacyChecks.innerHTML =
+                    '<div class="finding-item info"><i class="fas fa-info-circle"></i><div class="finding-content"><h4>No checks</h4><p>No audit data available.</p></div></div>';
+            } else {
+                this.el.privacyChecks.innerHTML = checks.map((check) => {
+                    const status = check.status || "info";
+                    const icon = status === "pass" ? "fa-check-circle" : status === "warn" ? "fa-exclamation-triangle" : "fa-times-circle";
+                    return `
+                        <div class="finding-item ${status}">
+                            <i class="fas ${icon}"></i>
+                            <div class="finding-content">
+                                <h4>${this.escapeHtml(check.id || "check")}</h4>
+                                <p>${this.escapeHtml(check.message || "No details")}</p>
+                            </div>
+                        </div>
+                    `;
+                }).join("");
+            }
+        }
+    },
+
+    async runWebRTCCheck(silent = false) {
+        try {
+            const ips = await this.collectWebRTCIps();
+            const isPrivate = (ip) => {
+                if (ip.startsWith("10.") || ip.startsWith("192.168.") || ip.startsWith("127.") || ip.startsWith("169.254.")) {
+                    return true;
+                }
+                if (ip.startsWith("172.")) {
+                    const parts = ip.split(".");
+                    const second = parseInt(parts[1], 10);
+                    return second >= 16 && second <= 31;
+                }
+                if (ip === "::1") return true;
+                if (ip.startsWith("fe80") || ip.startsWith("fc") || ip.startsWith("fd")) return true;
+                return false;
+            };
+            const publicIps = ips.filter((ip) => !isPrivate(ip));
+            const privateIps = ips.filter((ip) => isPrivate(ip));
+
+            if (this.el.webrtcStatus) this.el.webrtcStatus.textContent = ips.length ? "Detected" : "None";
+            if (this.el.webrtcPublic) this.el.webrtcPublic.textContent = publicIps.join(", ") || "-";
+            if (this.el.webrtcPrivate) this.el.webrtcPrivate.textContent = privateIps.join(", ") || "-";
+            if (this.el.webrtcMessage) {
+                this.el.webrtcMessage.textContent = ips.length ? "WebRTC IPs collected" : "No WebRTC IPs found";
+            }
+
+            await this.fetchJson("/api/webrtc/report", {
+                method: "POST",
+                body: { webrtc_ips: ips },
+                timeout: 5000,
+            });
+
+            if (!silent) {
+                notyf.success("WebRTC check completed");
+            }
+            return ips;
+        } catch (err) {
+            if (this.el.webrtcStatus) this.el.webrtcStatus.textContent = "Error";
+            if (this.el.webrtcMessage) this.el.webrtcMessage.textContent = "WebRTC check failed";
+            if (!silent) {
+                notyf.warning("WebRTC check failed or unsupported");
+            }
+            return [];
+        }
+    },
+
+    collectWebRTCIps() {
+        return new Promise((resolve) => {
+            if (!window.RTCPeerConnection) {
+                resolve([]);
+                return;
+            }
+            const ips = new Set();
+            const pc = new RTCPeerConnection({
+                iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+            });
+            pc.createDataChannel("ipcheck");
+
+            pc.onicecandidate = (event) => {
+                if (!event || !event.candidate) {
+                    pc.close();
+                    resolve(Array.from(ips));
+                    return;
+                }
+                const candidate = event.candidate.candidate;
+                const regex = /([0-9]{1,3}(?:\\.[0-9]{1,3}){3}|[a-fA-F0-9:]{2,})/g;
+                const matches = candidate.match(regex) || [];
+                matches.forEach((ip) => ips.add(ip));
+            };
+
+            pc.createOffer()
+                .then((offer) => pc.setLocalDescription(offer))
+                .catch(() => {
+                    pc.close();
+                    resolve([]);
+                });
+
+            setTimeout(() => {
+                pc.close();
+                resolve(Array.from(ips));
+            }, 3000);
+        });
+    },
+
     // History
     renderHistory() {
         if (!this.el.historyList) return;
@@ -4058,6 +4211,16 @@ const App = {
         if (!geo) return "-";
         const parts = [geo.city, geo.country].filter(Boolean);
         return parts.join(", ") || "-";
+    },
+
+    escapeHtml(value) {
+        if (value === null || value === undefined) return "";
+        return String(value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\"/g, "&quot;")
+            .replace(/'/g, "&#039;");
     },
 
     formatDate(iso) {

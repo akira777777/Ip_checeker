@@ -1,4 +1,4 @@
-# IP Checker Pro - Production Dependencies
+# IP Checker Pro - Dependencies
 # ==========================================
 
 # Core Framework
@@ -6,7 +6,7 @@ Flask>=3.0,<4
 Werkzeug>=3.0
 
 # Security & Performance
-Flask-Limiter>=3.0
+Flask-Limiter>=3.5
 Flask-Talisman>=1.1
 blinker>=1.6
 
@@ -17,20 +17,25 @@ psutil>=5.9
 requests>=2.31
 urllib3>=2.0
 
-# Optional - Enhanced geolocation
+# Database connectivity
+psycopg2-binary>=2.9.0
+SQLAlchemy>=2.0.0
+alembic>=1.10.0
+
+# Enhanced geolocation
 ipapi>=1.0
 
-# Optional - WHOIS lookups
+# WHOIS lookups
 python-whois>=0.9
 
-# Optional - Map generation
+# Map generation
 folium>=0.17
 branca>=0.6
 
-# Optional - Production WSGI server
+# Production WSGI server
 gunicorn>=21.0
 
-# Development dependencies (optional)
+# Development dependencies
 pytest>=7.0
 pytest-flask>=1.2
 black>=23.0

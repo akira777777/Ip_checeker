@@ -88,5 +88,6 @@
   "kimi-code.preventNewPanels": true,
   "kimi-code.freezeLayout": true,
 "kimi-code.permanentConfiguration": true,
-"files.autoSave": "afterDelay"
+"files.autoSave": "afterDelay",
+"chatgpt.openOnStartup": true
 }

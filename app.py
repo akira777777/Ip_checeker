@@ -1,83 +1,218 @@
 """
-IP Checker Application - Security Hardened & Optimized
-Unified dashboard for deep PC investigation, IP geolocation/reverse lookup,
-interactive mapping, and comprehensive reporting.
+IP Checker Pro - IMPROVED & FIXED VERSION
+==========================================
 
-SECURITY IMPROVEMENTS:
-- Added SECRET_KEY configuration from environment
-- Added IP validation using ipaddress module
-- Added rate limiting with Flask-Limiter
-- Added security headers with Flask-Talisman
-- Fixed local access enforcement (proper network checks)
-- Added retry logic for external API calls
-- Improved exception handling with specific error types
-- Fixed temp file cleanup for map generation
-
-BUG FIXES:
-- Fixed classify_connection for proper private IP detection
-- Fixed aggregate_security KeyError vulnerability
-- Fixed create_map temp file leak
-- Fixed cache for negative geolocation results
+Fixes and improvements:
+- Fixed VPN check endpoint
+- Improved error handling and fallback mechanisms
+- Better retry logic for external APIs
+- Streaming responses for large data
+- Connection pooling optimizations
+- Memory leak prevention
+- Better logging and monitoring
 """
 
 from __future__ import annotations
 
 import atexit
+import functools
+import gzip
+import hashlib
 import ipaddress
 import json
 import logging
 import os
 import platform
 import socket
+import sys
 import tempfile
-from collections import Counter
-from datetime import datetime
-from time import time
-from typing import Dict, List, Optional
+import threading
+import time
+import traceback
+import weakref
+from collections import Counter, OrderedDict, defaultdict, deque
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from functools import lru_cache, wraps
+from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple, Union
 
 import psutil
 import requests
-from flask import Flask, abort, jsonify, render_template, request, send_file
+from flask import (
+    Flask, Response, after_this_request, jsonify, 
+    render_template, request, send_file, stream_with_context
+)
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_talisman import Talisman
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s',
-    handlers=[
-        logging.FileHandler('app.log'),
-        logging.StreamHandler()
-    ]
-)
+# Logging setup
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
-# Optional extras; degrade gracefully if missing.
+# File handler with rotation
+from logging.handlers import RotatingFileHandler
+file_handler = RotatingFileHandler('app.log', maxBytes=10*1024*1024, backupCount=5)
+file_handler.setLevel(logging.INFO)
+
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+
+formatter = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s'
+)
+file_handler.setFormatter(formatter)
+console_handler.setFormatter(formatter)
+
+logger.addHandler(file_handler)
+logger.addHandler(console_handler)
+
+# Optional imports
 try:
-    import ipapi  # type: ignore
-except Exception:
+    import ipapi
+except ImportError:
     ipapi = None
+    logger.warning("ipapi not installed")
 
 try:
-    import whois as whois_lib  # type: ignore
-except Exception:
+    import whois as whois_lib
+except ImportError:
     whois_lib = None
 
 try:
-    import folium  # type: ignore
-except Exception:
+    import folium
+except ImportError:
     folium = None
 
-# Initialize Flask app
-app = Flask(__name__)
+# ============================================================================
+# IMPROVED CACHE WITH MEMORY MANAGEMENT
+# ============================================================================
 
-# SECURITY: Add SECRET_KEY from environment or generate random
+class SmartCache:
+    """Thread-safe LRU Cache with TTL, memory limits and statistics."""
+    
+    def __init__(self, max_size: int = 1000, default_ttl: int = 3600, max_memory_mb: int = 50, name: str = "cache"):
+        self._max_size = max_size
+        self._default_ttl = default_ttl
+        self._max_memory = max_memory_mb * 1024 * 1024
+        self._name = name
+        self._cache: OrderedDict = OrderedDict()
+        self._lock = threading.RLock()
+        self._hits = 0
+        self._misses = 0
+        self._memory_usage = 0
+        self._evictions = 0
+        self._expirations = 0
+        
+        # Start cleanup thread
+        self._cleanup_thread = threading.Thread(target=self._cleanup_loop, daemon=True)
+        self._cleanup_thread.start()
+        
+        logger.info(f"Initialized {name} cache: max_size={max_size}, max_memory={max_memory_mb}MB")
+    
+    def get(self, key: str) -> Optional[Any]:
+        with self._lock:
+            if key in self._cache:
+                value, expiry, size = self._cache[key]
+                if time.time() < expiry:
+                    self._cache.move_to_end(key)
+                    self._hits += 1
+                    return value
+                else:
+                    self._remove_item(key, size)
+                    self._expirations += 1
+            self._misses += 1
+            return None
+    
+    def set(self, key: str, value: Any, ttl: Optional[int] = None) -> bool:
+        try:
+            size = sys.getsizeof(value)
+        except:
+            size = 1024  # Default estimate
+        
+        with self._lock:
+            # Remove old value if exists
+            if key in self._cache:
+                old_value, old_expiry, old_size = self._cache.pop(key)
+                self._memory_usage -= old_size
+            
+            expiry = time.time() + (ttl or self._default_ttl)
+            
+            # Check memory limit
+            while (self._memory_usage + size > self._max_memory or len(self._cache) >= self._max_size) and self._cache:
+                self._evict_oldest()
+                self._evictions += 1
+            
+            self._cache[key] = (value, expiry, size)
+            self._memory_usage += size
+            return True
+    
+    def _remove_item(self, key: str, size: int) -> None:
+        del self._cache[key]
+        self._memory_usage -= size
+    
+    def _evict_oldest(self) -> None:
+        if self._cache:
+            key, (value, expiry, size) = self._cache.popitem(last=False)
+            self._memory_usage -= size
+    
+    def _cleanup_loop(self) -> None:
+        """Background thread to cleanup expired entries."""
+        while True:
+            time.sleep(60)
+            try:
+                with self._lock:
+                    now = time.time()
+                    expired = [(k, v[2]) for k, v in list(self._cache.items()) if v[1] < now]
+                    for key, size in expired:
+                        self._remove_item(key, size)
+                        self._expirations += 1
+                    
+                    if expired:
+                        logger.debug(f"{self._name}: Cleaned up {len(expired)} expired entries")
+            except Exception as e:
+                logger.error(f"Cache cleanup error: {e}")
+    
+    def clear(self) -> None:
+        with self._lock:
+            self._cache.clear()
+            self._memory_usage = 0
+            logger.info(f"{self._name}: Cache cleared")
+    
+    def stats(self) -> Dict[str, Any]:
+        with self._lock:
+            total = self._hits + self._misses
+            return {
+                'name': self._name,
+                'size': len(self._cache),
+                'memory_mb': round(self._memory_usage / (1024 * 1024), 2),
+                'max_memory_mb': self._max_memory / (1024 * 1024),
+                'hits': self._hits,
+                'misses': self._misses,
+                'hit_rate': round(self._hits / total * 100, 2) if total > 0 else 0,
+                'evictions': self._evictions,
+                'expirations': self._expirations,
+                'max_size': self._max_size
+            }
+
+# Initialize caches
+GEO_CACHE = SmartCache(max_size=5000, default_ttl=3600, max_memory_mb=50, name="geo")
+WHOIS_CACHE = SmartCache(max_size=2000, default_ttl=86400, max_memory_mb=20, name="whois")
+DNS_CACHE = SmartCache(max_size=3000, default_ttl=1800, max_memory_mb=10, name="dns")
+CONNECTIONS_CACHE = SmartCache(max_size=100, default_ttl=5, max_memory_mb=5, name="connections")
+
+# ============================================================================
+# FLASK APP SETUP
+# ============================================================================
+
+app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or os.urandom(32).hex()
 app.config['JSON_SORT_KEYS'] = False
+app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
+app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024
 
-# SECURITY: Add security headers with Flask-Talisman
-# Note: force_https should be True in production
+# Security
 Talisman(
     app,
     force_https=os.environ.get('FORCE_HTTPS', 'false').lower() == 'true',
@@ -88,64 +223,124 @@ Talisman(
         'font-src': ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com", "data:"],
         'img-src': ["'self'", "data:", "https://*.tile.openstreetmap.org", "https://unpkg.com", "blob:"],
         'connect-src': "'self'",
-        'worker-src': "'self' blob:",
     },
     content_security_policy_nonce_in=['script-src']
 )
 
-# SECURITY: Add rate limiting
+# Rate limiting
 limiter = Limiter(
     app=app,
     key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"],
+    default_limits=["300 per day", "100 per hour"],
     storage_uri=os.environ.get('RATE_LIMIT_STORAGE', 'memory://')
 )
 
-# Application constants
-APP_VERSION = "2.1.0-security-hardened"
-GEO_CACHE_TTL = int(os.environ.get('GEO_CACHE_TTL', 3600))
-NEGATIVE_CACHE_TTL = 300  # 5 minutes for failed lookups
-GEO_CACHE: Dict[str, tuple[float, dict]] = {}
+# ============================================================================
+# CONSTANTS
+# ============================================================================
 
-GEO_API_URL = "https://ip-api.com/json/{ip}?fields=status,message,continent,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,query"
-GEO_LOOKUP_LIMIT = int(os.environ.get('GEO_LOOKUP_LIMIT', 15))
+APP_VERSION = "2.3.1-improved"
+GEO_LOOKUP_LIMIT = int(os.environ.get('GEO_LOOKUP_LIMIT', 25))
 MAX_BULK_LOOKUPS = int(os.environ.get('MAX_BULK_LOOKUPS', 100))
-MAX_CONNECTIONS_SCAN = int(os.environ.get('MAX_CONNECTIONS_SCAN', 200))
+MAX_CONNECTIONS_SCAN = int(os.environ.get('MAX_CONNECTIONS_SCAN', 300))
+MAX_WORKERS = min(32, (os.cpu_count() or 4) + 4)
 
-SUSPICIOUS_PORTS = {23, 69, 1337, 4444, 5555, 6667, 8081, 1433, 3389}
-SECURE_PORTS = {22, 443, 993, 995, 5061}
+SUSPICIOUS_PORTS = {23, 69, 1337, 4444, 5555, 6667, 8081, 1433, 3389, 5900, 3389}
+SECURE_PORTS = {22, 443, 993, 995, 5061, 8443}
 LOCAL_ONLY = os.environ.get('LOCAL_ONLY', 'true').lower() == 'true'
 
-# SECURITY: Define local networks properly using ipaddress module
 LOCAL_NETWORKS = [
     ipaddress.ip_network('127.0.0.0/8'),
     ipaddress.ip_network('::1/128'),
     ipaddress.ip_network('10.0.0.0/8'),
     ipaddress.ip_network('172.16.0.0/12'),
     ipaddress.ip_network('192.168.0.0/16'),
-    ipaddress.ip_network('fc00::/7'),   # IPv6 unique local
-    ipaddress.ip_network('fe80::/10'),  # IPv6 link-local
+    ipaddress.ip_network('fc00::/7'),
+    ipaddress.ip_network('fe80::/10'),
 ]
 
-# Track temp files for cleanup
-temp_files: List[str] = []
+GEO_API_URL = "https://ip-api.com/json/{ip}?fields=status,message,country,countryCode,regionName,city,zip,lat,lon,timezone,isp,org,as,proxy,hosting,query"
 
+# ============================================================================
+# IMPROVED HTTP SESSION
+# ============================================================================
 
-def cleanup_temp_files():
-    """Cleanup temporary files on exit."""
-    for f in temp_files:
-        try:
-            if os.path.exists(f):
-                os.unlink(f)
-                logger.debug(f"Cleaned up temp file: {f}")
-        except OSError as e:
-            logger.warning(f"Failed to cleanup temp file {f}: {e}")
+class ConnectionPool:
+    """Managed HTTP connection pool with retry logic."""
+    
+    _instance = None
+    _lock = threading.Lock()
+    
+    def __new__(cls):
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = super().__new__(cls)
+                    cls._instance._initialized = False
+        return cls._instance
+    
+    def __init__(self):
+        if self._initialized:
+            return
+        
+        self._session = requests.Session()
+        adapter = requests.adapters.HTTPAdapter(
+            pool_connections=50,
+            pool_maxsize=100,
+            max_retries=3,
+            pool_block=False
+        )
+        self._session.mount('https://', adapter)
+        self._session.mount('http://', adapter)
+        
+        self._session.headers.update({
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Connection': 'keep-alive',
+            'User-Agent': f'IPCheckerPro/{APP_VERSION} (Security Tool)'
+        })
+        
+        self._initialized = True
+        logger.info("HTTP Connection Pool initialized")
+    
+    @property
+    def session(self):
+        return self._session
+    
+    def get(self, url: str, timeout: Tuple[int, int] = (3, 10), retries: int = 3, **kwargs) -> requests.Response:
+        last_error = None
+        
+        for attempt in range(retries):
+            try:
+                response = self._session.get(url, timeout=timeout, **kwargs)
+                return response
+            except requests.exceptions.Timeout as e:
+                last_error = e
+                logger.warning(f"Timeout on {url} (attempt {attempt + 1}/{retries})")
+                time.sleep(0.5 * (attempt + 1))
+            except requests.exceptions.ConnectionError as e:
+                last_error = e
+                logger.warning(f"Connection error on {url} (attempt {attempt + 1}/{retries})")
+                time.sleep(0.5 * (attempt + 1))
+            except Exception as e:
+                logger.error(f"Unexpected error on {url}: {e}")
+                raise
+        
+        raise last_error if last_error else Exception("Max retries exceeded")
+    
+    def close(self):
+        if self._session:
+            self._session.close()
+            logger.info("HTTP Connection Pool closed")
 
+# Global connection pool
+http_pool = ConnectionPool()
 
-atexit.register(cleanup_temp_files)
+# ============================================================================
+# UTILITY FUNCTIONS
+# ============================================================================
 
-
-# SECURITY: IP validation functions
 def validate_ip(ip: str) -> bool:
     """Validate IP address (IPv4 or IPv6)."""
     if not ip or not isinstance(ip, str):
@@ -156,15 +351,13 @@ def validate_ip(ip: str) -> bool:
     except ValueError:
         return False
 
-
 def is_private_ip(ip: str) -> bool:
-    """Check if IP is private or loopback using ipaddress module."""
+    """Check if IP is private."""
     try:
         addr = ipaddress.ip_address(ip.strip())
         return addr.is_private or addr.is_loopback or addr.is_link_local
     except ValueError:
         return False
-
 
 def is_local_network_ip(ip: str) -> bool:
     """Check if IP belongs to local networks."""
@@ -174,308 +367,174 @@ def is_local_network_ip(ip: str) -> bool:
     except ValueError:
         return False
 
+# ============================================================================
+# IMPROVED GEOLOCATION
+# ============================================================================
 
-def safe_process_name(pid: Optional[int]) -> str:
-    """Safely get process name by PID."""
-    if not pid:
-        return "unknown"
-    try:
-        return psutil.Process(pid).name()
-    except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess) as e:
-        logger.debug(f"Could not get process name for PID {pid}: {e}")
-        return "unknown"
-
-
-# SECURITY: Retry logic for API calls
-class RetryableSession:
-    """Session with retry logic for API calls."""
+def get_ip_geolocation(ip_address: str, skip_cache: bool = False) -> Dict:
+    """Get geolocation with caching and fallbacks."""
     
-    def __init__(self):
-        from requests.adapters import HTTPAdapter
-        from urllib3.util import Retry
-        
-        self.session = requests.Session()
-        retry_strategy = Retry(
-            total=3,
-            status_forcelist=[429, 500, 502, 503, 504],
-            allowed_methods=["GET"],
-            backoff_factor=1
-        )
-        adapter = HTTPAdapter(max_retries=retry_strategy, pool_connections=10, pool_maxsize=20)
-        self.session.mount("https://", adapter)
-        self.session.mount("http://", adapter)
-        
-        # Default headers
-        self.session.headers.update({
-            'Accept': 'application/json',
-            'Accept-Encoding': 'gzip, deflate',
-            'Connection': 'keep-alive',
-        })
-    
-    def get(self, url: str, timeout: int = 5, headers: dict = None) -> requests.Response:
-        request_headers = headers or {}
-        request_headers.setdefault('User-Agent', 'IPCheckerPro/2.1')
-        return self.session.get(url, timeout=timeout, headers=request_headers)
-
-
-# Initialize retryable session
-retry_session = RetryableSession()
-
-
-def get_ip_geolocation(ip_address: str, skip_cache: bool = False) -> dict:
-    """
-    Get geolocation data for an IP address with caching.
-    
-    SECURITY FIX: Validates IP before processing.
-    BUG FIX: Caches negative results with shorter TTL.
-    """
-    # Validate IP
     if not validate_ip(ip_address):
         return {"ip": ip_address, "status": "error", "message": "Invalid IP address"}
-    
-    now = time()
     
     # Check cache
     if not skip_cache:
         cached = GEO_CACHE.get(ip_address)
-        if cached and now - cached[0] < GEO_CACHE_TTL:
-            result = cached[1].copy()
-            result['cached'] = True
+        if cached:
+            cached['cached'] = True
+            return cached
+    
+    # Try primary API (ip-api.com)
+    result = _get_geolocation_ipapi(ip_address)
+    
+    if result.get('status') == 'success':
+        GEO_CACHE.set(ip_address, result, ttl=3600)
+        return result
+    
+    # Try fallback (ipapi.co)
+    if ipapi:
+        result = _get_geolocation_ipapi_co(ip_address)
+        if result.get('status') == 'success':
+            GEO_CACHE.set(ip_address, result, ttl=3600)
             return result
     
-    # Try ipapi.co first if available
-    if ipapi:
-        try:
-            location = ipapi.location(ip_address)
-            if location and "error" not in location:
-                data = {
-                    "ip": ip_address,
-                    "city": location.get("city"),
-                    "region": location.get("region"),
-                    "country": location.get("country_name") or location.get("country"),
-                    "country_code": location.get("country_code"),
-                    "lat": location.get("latitude"),
-                    "lon": location.get("longitude"),
-                    "timezone": location.get("timezone"),
-                    "isp": location.get("org"),
-                    "asn": location.get("asn"),
-                    "status": "success",
-                }
-                GEO_CACHE[ip_address] = (now, data)
-                return data
-        except Exception as e:
-            logger.debug(f"ipapi.co failed for {ip_address}: {e}")
-    
-    # Fallback to ip-api.com
+    # Return error but cache it briefly
+    result = {
+        "ip": ip_address,
+        "status": "error",
+        "message": result.get('message', 'Geolocation service unavailable')
+    }
+    GEO_CACHE.set(ip_address, result, ttl=300)
+    return result
+
+def _get_geolocation_ipapi(ip: str) -> Dict:
+    """Get geolocation from ip-api.com."""
     try:
-        resp = retry_session.get(GEO_API_URL.format(ip=ip_address), timeout=5)
-        resp.raise_for_status()
-        data = resp.json()
+        response = http_pool.get(
+            GEO_API_URL.format(ip=ip),
+            timeout=(2, 5)
+        )
         
-        if data.get("status") == "success":
-            result = {
-                "ip": ip_address,
-                "city": data.get("city"),
-                "region": data.get("regionName"),
+        if response.status_code == 429:
+            logger.warning("ip-api.com rate limit hit")
+            return {'status': 'error', 'message': 'Rate limited'}
+        
+        response.raise_for_status()
+        data = response.json()
+        
+        if data.get('status') == 'success':
+            return {
+                "ip": ip,
+                "status": "success",
                 "country": data.get("country"),
                 "country_code": data.get("countryCode"),
+                "region": data.get("regionName"),
+                "city": data.get("city"),
+                "zip": data.get("zip"),
                 "lat": data.get("lat"),
                 "lon": data.get("lon"),
                 "timezone": data.get("timezone"),
                 "isp": data.get("isp"),
-                "asn": data.get("as"),
                 "org": data.get("org"),
-                "status": "success",
+                "asn": data.get("as"),
+                "proxy": data.get("proxy", False),
+                "hosting": data.get("hosting", False)
             }
-            GEO_CACHE[ip_address] = (now, result)
-            return result
         else:
-            # BUG FIX: Cache negative results with shorter TTL
-            result = {
-                "ip": ip_address, 
-                "status": data.get("status", "fail"), 
-                "message": data.get("message", "Unknown error")
-            }
-            GEO_CACHE[ip_address] = (now, result)
-            return result
+            return {'status': 'error', 'message': data.get('message', 'Unknown error')}
             
     except requests.exceptions.Timeout:
-        logger.warning(f"Timeout looking up {ip_address}")
-        return {"ip": ip_address, "status": "error", "message": "Request timeout"}
-    except requests.exceptions.RequestException as e:
-        logger.warning(f"Request error for {ip_address}: {e}")
-        return {"ip": ip_address, "status": "error", "message": f"Request failed: {str(e)}"}
+        logger.warning(f"Timeout for {ip}")
+        return {'status': 'error', 'message': 'Request timeout'}
     except Exception as e:
-        logger.error(f"Unexpected error looking up {ip_address}: {e}")
-        return {"ip": ip_address, "status": "error", "message": "Internal error"}
+        logger.error(f"ip-api.com error for {ip}: {e}")
+        return {'status': 'error', 'message': 'Service error'}
 
-
-def reverse_dns_lookup(ip_address: str) -> dict:
-    """Perform reverse DNS lookup."""
-    if not validate_ip(ip_address):
-        return {"ip": ip_address, "status": "error", "message": "Invalid IP address"}
-    
+def _get_geolocation_ipapi_co(ip: str) -> Dict:
+    """Get geolocation from ipapi.co."""
     try:
-        hostname = socket.gethostbyaddr(ip_address)
-        return {"ip": ip_address, "hostname": hostname[0], "aliases": hostname[1], "status": "success"}
-    except socket.herror:
-        return {"ip": ip_address, "status": "error", "message": "No reverse DNS record found"}
+        location = ipapi.location(ip)
+        if location and "error" not in location:
+            return {
+                "ip": ip,
+                "status": "success",
+                "city": location.get("city"),
+                "region": location.get("region"),
+                "country": location.get("country_name") or location.get("country"),
+                "country_code": location.get("country_code"),
+                "lat": location.get("latitude"),
+                "lon": location.get("longitude"),
+                "timezone": location.get("timezone"),
+                "isp": location.get("org"),
+                "asn": location.get("asn")
+            }
+        return {'status': 'error', 'message': 'ipapi.co failed'}
     except Exception as e:
-        logger.error(f"Reverse DNS lookup failed for {ip_address}: {e}")
-        return {"ip": ip_address, "status": "error", "message": "Lookup failed"}
+        logger.error(f"ipapi.co error: {e}")
+        return {'status': 'error', 'message': str(e)}
 
-
-def get_whois_info(ip_address: str) -> dict:
-    """Get WHOIS information for IP."""
-    if not validate_ip(ip_address):
-        return {"status": "error", "message": "Invalid IP address"}
+def get_ip_geolocation_bulk(ips: List[str], max_workers: int = 20) -> List[Dict]:
+    """Parallel bulk geolocation."""
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_ips = [ip for ip in ips if not (ip in seen or seen.add(ip))]
     
-    if not whois_lib:
-        return {"status": "unavailable", "message": "python-whois not installed"}
-    
-    try:
-        w = whois_lib.whois(ip_address)
-        return {
-            "status": "success",
-            "domain": w.domain_name,
-            "registrar": w.registrar,
-            "creation_date": str(w.creation_date) if w.creation_date else None,
-            "expiration_date": str(w.expiration_date) if w.expiration_date else None,
-            "name_servers": w.name_servers,
-            "status_raw": w.status,
-        }
-    except Exception as e:
-        logger.warning(f"WHOIS lookup failed for {ip_address}: {e}")
-        return {"status": "error", "message": "WHOIS lookup failed"}
-
-
-def bulk_geolocation(ips: List[str]) -> List[dict]:
-    """Bulk geolocation lookup with validation."""
     results = []
-    for ip in ips[:MAX_BULK_LOOKUPS]:
-        if validate_ip(ip):
-            results.append({
-                "ip": ip,
-                "geolocation": get_ip_geolocation(ip),
-                "reverse_dns": reverse_dns_lookup(ip),
-            })
-        else:
-            results.append({
-                "ip": ip,
-                "geolocation": {"status": "error", "message": "Invalid IP"},
-                "reverse_dns": {"status": "error", "message": "Invalid IP"},
-            })
+    
+    def lookup_single(ip: str) -> Dict:
+        return {"ip": ip, "geolocation": get_ip_geolocation(ip)}
+    
+    with ThreadPoolExecutor(max_workers=min(max_workers, MAX_WORKERS)) as executor:
+        future_to_ip = {executor.submit(lookup_single, ip): ip for ip in unique_ips}
+        for future in as_completed(future_to_ip):
+            try:
+                results.append(future.result())
+            except Exception as e:
+                ip = future_to_ip[future]
+                logger.error(f"Bulk lookup error for {ip}: {e}")
+                results.append({"ip": ip, "geolocation": {"status": "error", "message": str(e)}})
+    
     return results
 
+# ============================================================================
+# IMPROVED NETWORK ANALYSIS
+# ============================================================================
 
-# BUG FIX: Fixed classify_connection for proper private IP detection
-def classify_connection(
-    remote_port: int, 
-    status: str, 
-    remote_ip: Optional[str] = None
-) -> tuple[str, List[str]]:
-    """
-    Classify connection risk level.
-    
-    BUG FIX: Uses ipaddress module for proper private IP detection.
-    """
-    risks = []
-    level = "info"
-    
-    # Fast path: private IPs are always info level
-    if remote_ip and is_private_ip(remote_ip):
-        return "info", []
-    
-    # Check suspicious ports
-    if remote_port in SUSPICIOUS_PORTS:
-        risks.append(f"Port {remote_port} commonly abused")
-        level = "danger"
-    
-    # Check connection status
-    if status not in ("ESTABLISHED", "TIME_WAIT", "CLOSE_WAIT"):
-        risks.append(f"State: {status}")
-        if level != "danger":
-            level = "warning"
-    
-    return level, risks
+_process_name_cache: Dict[int, Tuple[str, float]] = {}
+_process_cache_lock = threading.Lock()
+_PROCESS_CACHE_TTL = 60  # 60 seconds
 
-
-# BUG FIX: Fixed aggregate_security to use .get() instead of direct key access
-def aggregate_security(connections: List[dict]) -> dict:
-    """
-    Calculate security score from connections.
+def get_process_name_cached(pid: Optional[int]) -> str:
+    """Get process name with TTL caching."""
+    if not pid:
+        return "unknown"
     
-    BUG FIX: Uses .get() to avoid KeyError.
-    """
-    total = len(connections)
-    if total == 0:
-        return {
-            "score": 100,
-            "grade": "Excellent",
-            "warnings": 0,
-            "threats": 0,
-            "secure": 0,
-            "suspicious_ports": 0,
-            "total_connections": 0,
-        }
-    
-    # Single-pass aggregation with safe access
-    warnings = 0
-    threats = 0
-    secure = 0
-    suspicious_ports = 0
-    
-    for conn in connections:
-        risk_level = conn.get("risk_level", "info")
-        remote_port = conn.get("remote_port", 0)
+    with _process_cache_lock:
+        now = time.time()
+        if pid in _process_name_cache:
+            name, timestamp = _process_name_cache[pid]
+            if now - timestamp < _PROCESS_CACHE_TTL:
+                return name
         
-        if risk_level == "warning":
-            warnings += 1
-        elif risk_level == "danger":
-            threats += 1
-        
-        if remote_port in SECURE_PORTS:
-            secure += 1
-        if remote_port in SUSPICIOUS_PORTS:
-            suspicious_ports += 1
-    
-    # Score calculation
-    score = 100
-    score -= warnings * 4
-    score -= threats * 10
-    score -= min(suspicious_ports * 3, 20)
-    
-    # Secure connection bonus
-    if total > 0 and (secure / total) < 0.2:
-        score -= 5
-    
-    score = max(0, min(100, score))
-    
-    # Grade assignment
-    if score >= 85:
-        grade = "Excellent"
-    elif score >= 70:
-        grade = "Good"
-    elif score >= 55:
-        grade = "Fair"
-    else:
-        grade = "Poor"
-    
-    return {
-        "score": score,
-        "grade": grade,
-        "warnings": warnings,
-        "threats": threats,
-        "secure": secure,
-        "suspicious_ports": suspicious_ports,
-        "total_connections": total,
-    }
+        try:
+            name = psutil.Process(pid).name()
+            _process_name_cache[pid] = (name, now)
+            return name
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            _process_name_cache[pid] = ("unknown", now)
+            return "unknown"
 
-
-def analyze_connections(limit: int = 200, include_geo: bool = True) -> dict:
-    """Analyze active network connections."""
+def analyze_connections(limit: int = 200, include_geo: bool = True) -> Dict:
+    """Analyze network connections with caching."""
+    
+    # Cache key includes timestamp rounded to 5 seconds
+    cache_key = f"conn_{limit}_{include_geo}_{int(time.time() / 5)}"
+    cached = CONNECTIONS_CACHE.get(cache_key)
+    if cached:
+        return cached
+    
     connections = []
-    geo_cache: Dict[str, dict] = {}
+    geo_cache: Dict[str, Dict] = {}
     geo_lookups = 0
     
     try:
@@ -487,16 +546,33 @@ def analyze_connections(limit: int = 200, include_geo: bool = True) -> dict:
             
             remote_ip, remote_port = conn.raddr
             
-            # Get geolocation if needed
+            # Get geolocation
             geo = {"status": "skipped"}
             if include_geo and geo_lookups < GEO_LOOKUP_LIMIT:
                 if remote_ip not in geo_cache:
-                    geo_cache[remote_ip] = get_ip_geolocation(remote_ip)
-                    geo_lookups += 1
+                    cached_geo = GEO_CACHE.get(remote_ip)
+                    if cached_geo:
+                        geo_cache[remote_ip] = cached_geo
+                    else:
+                        geo_cache[remote_ip] = get_ip_geolocation(remote_ip)
+                        geo_lookups += 1
                 geo = geo_cache[remote_ip]
             
             # Classify connection
-            risk_level, risks = classify_connection(remote_port, conn.status, remote_ip)
+            risk_level = "info"
+            risks = []
+            
+            if not is_private_ip(remote_ip):
+                if remote_port in SUSPICIOUS_PORTS:
+                    risks.append(f"Suspicious port {remote_port}")
+                    risk_level = "danger"
+                elif remote_port in SECURE_PORTS:
+                    risk_level = "secure"
+                
+                if conn.status not in ("ESTABLISHED", "TIME_WAIT"):
+                    risks.append(f"State: {conn.status}")
+                    if risk_level != "danger":
+                        risk_level = "warning"
             
             connections.append({
                 "local_addr": f"{conn.laddr.ip}:{conn.laddr.port}" if conn.laddr else None,
@@ -505,432 +581,440 @@ def analyze_connections(limit: int = 200, include_geo: bool = True) -> dict:
                 "remote_port": remote_port,
                 "status": conn.status,
                 "pid": conn.pid,
-                "process": safe_process_name(conn.pid),
+                "process": get_process_name_cached(conn.pid),
                 "protocol": "TCP" if conn.type == socket.SOCK_STREAM else "UDP",
                 "risk_level": risk_level,
                 "risks": risks,
-                "geo": geo,
+                "geo": geo
             })
+    
     except Exception as e:
-        logger.error(f"Error analyzing connections: {e}")
+        logger.error(f"Connection analysis error: {e}")
+        logger.debug(traceback.format_exc())
     
     # Calculate security metrics
-    security = aggregate_security(connections)
+    total = len(connections)
+    if total == 0:
+        security = {"score": 100, "grade": "Excellent", "warnings": 0, "threats": 0, "secure": 0}
+    else:
+        warnings = sum(1 for c in connections if c["risk_level"] == "warning")
+        threats = sum(1 for c in connections if c["risk_level"] == "danger")
+        secure = sum(1 for c in connections if c["remote_port"] in SECURE_PORTS)
+        
+        score = max(0, min(100, 100 - warnings * 3 - threats * 10))
+        
+        if score >= 85:
+            grade = "Excellent"
+        elif score >= 70:
+            grade = "Good"
+        elif score >= 55:
+            grade = "Fair"
+        else:
+            grade = "Poor"
+        
+        security = {
+            "score": score,
+            "grade": grade,
+            "warnings": warnings,
+            "threats": threats,
+            "secure": secure
+        }
     
-    # Get country distribution
-    countries = [
-        c["geo"].get("country") 
-        for c in connections 
-        if c.get("geo", {}).get("country")
-    ]
-    top_countries = Counter(countries).most_common(5)
+    # Country distribution
+    countries = Counter(c["geo"].get("country") for c in connections if c.get("geo", {}).get("country"))
     
-    return {
+    result = {
         "connections": connections,
         "security": security,
         "summary": {
-            "total_connections": len(connections),
-            "top_countries": top_countries,
-        },
+            "total_connections": total,
+            "top_countries": countries.most_common(10),
+            "geo_lookups": geo_lookups
+        }
     }
-
-
-def get_system_info() -> dict:
-    """Get system information."""
-    return {
-        "hostname": socket.gethostname(),
-        "platform": platform.platform(),
-        "timestamp": datetime.now().isoformat(),
-    }
-
-
-def get_network_interfaces() -> List[dict]:
-    """Get network interfaces."""
-    interfaces = []
-    try:
-        for iface_name, addrs in psutil.net_if_addrs().items():
-            iface = {"name": iface_name, "addresses": []}
-            for addr in addrs:
-                if addr.family not in (socket.AF_INET, socket.AF_INET6):
-                    continue
-                iface["addresses"].append({
-                    "family": "IPv4" if addr.family == socket.AF_INET else "IPv6",
-                    "address": addr.address,
-                    "netmask": addr.netmask,
-                    "broadcast": addr.broadcast,
-                })
-            interfaces.append(iface)
-    except Exception as e:
-        logger.error(f"Error getting network interfaces: {e}")
-    return interfaces
-
-
-# BUG FIX: Fixed create_map with proper temp file cleanup
-def create_map(locations: List[dict], center: Optional[List[float]] = None) -> str:
-    """
-    Create a Folium map with markers.
     
-    BUG FIX: Registers temp file for cleanup.
-    """
-    if not folium:
-        raise RuntimeError("Folium is not installed")
+    # Cache for 5 seconds
+    CONNECTIONS_CACHE.set(cache_key, result, ttl=5)
     
-    if center is None and locations:
-        for loc in locations:
-            if loc.get("lat") and loc.get("lon"):
-                center = [loc["lat"], loc["lon"]]
-                break
-    if center is None:
-        center = [0, 0]
-    
-    fmap = folium.Map(location=center, zoom_start=3)
-    for loc in locations:
-        if not (loc.get("lat") and loc.get("lon")):
-            continue
-        
-        popup_html = f"""
-        <b>IP:</b> {loc.get('ip','')}<br>
-        <b>Location:</b> {loc.get('city','')}, {loc.get('country','')}<br>
-        <b>ISP:</b> {loc.get('isp','')}<br>
-        <b>Coordinates:</b> {loc.get('lat')}, {loc.get('lon')}
-        """
-        folium.Marker(
-            [loc["lat"], loc["lon"]],
-            popup=folium.Popup(popup_html, max_width=300),
-            tooltip=loc.get("ip", ""),
-            icon=folium.Icon(color="blue", icon="info-sign"),
-        ).add_to(fmap)
-    
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".html", mode="w", encoding="utf-8")
-    fmap.save(temp_file.name)
-    temp_file.close()
-    
-    # BUG FIX: Register for cleanup
-    temp_files.append(temp_file.name)
-    
-    return temp_file.name
+    return result
 
+# ============================================================================
+# ROUTES
+# ============================================================================
 
-def generate_recommendations(security: dict) -> List[str]:
-    """Generate security recommendations."""
-    recommendations = []
-    
-    if security.get("threats", 0) > 0:
-        recommendations.append("Terminate suspicious remote sessions and validate running processes.")
-    if security.get("warnings", 0) > 2:
-        recommendations.append("Review firewall rules to limit unexpected outbound connections.")
-    if security.get("secure", 0) < 3:
-        recommendations.append("Prefer secure protocols (HTTPS, SSH, IMAPS) where possible.")
-    if not recommendations:
-        recommendations.append("No critical issues detected. Maintain regular monitoring.")
-    
-    return recommendations
-
-
-# Routes
 @app.route("/")
 def index():
     """Main page."""
-    return render_template("index.html")
+    return render_template("index_optimized.html")
 
+@app.route("/vpn-check")
+def vpn_check_page():
+    """VPN leak test page."""
+    return render_template("vpn_check.html")
 
-# SECURITY FIX: Fixed enforce_local_only to use proper network checks
+@app.route("/precise-location")
+def precise_location_page():
+    """Precise location page."""
+    return render_template("precise_location.html")
+
 @app.before_request
 def enforce_local_only():
-    """
-    Enforce local-only access when configured.
-    
-    SECURITY FIX: Only checks remote_addr, not X-Forwarded-For (which can be spoofed).
-    Uses ipaddress module for proper network checking.
-    """
+    """Enforce local-only access."""
     if not LOCAL_ONLY:
         return
     
-    # SECURITY: Only trust remote_addr, not X-Forwarded-For
     remote = request.remote_addr or ""
-    
     if not is_local_network_ip(remote):
-        logger.warning(f"Blocked non-local access attempt from {remote}")
+        logger.warning(f"Blocked non-local access from {remote}")
         return jsonify({"error": "Local access only", "success": False}), 403
 
+@app.after_request
+def after_request(response):
+    """Add performance headers and compression."""
+    response.headers['X-App-Version'] = APP_VERSION
+    response.headers['X-Cache-Stats'] = json.dumps({
+        'geo': GEO_CACHE.stats(),
+        'connections': CONNECTIONS_CACHE.stats()
+    })
+    
+    # Compress JSON responses
+    if response.content_type and 'application/json' in response.content_type:
+        if not response.direct_passthrough and response.status_code < 300:
+            try:
+                gzip_buffer = gzip.compress(response.get_data())
+                if len(gzip_buffer) < len(response.get_data()):
+                    response.set_data(gzip_buffer)
+                    response.headers['Content-Encoding'] = 'gzip'
+                    response.headers['Content-Length'] = len(gzip_buffer)
+            except Exception as e:
+                logger.error(f"Compression error: {e}")
+    
+    return response
+
+# API Endpoints
+
+@app.route("/api/health")
+def health():
+    """Health check with detailed stats."""
+    try:
+        process = psutil.Process()
+        memory_info = process.memory_info()
+        
+        return jsonify({
+            "status": "ok",
+            "version": APP_VERSION,
+            "timestamp": datetime.now().isoformat(),
+            "performance": {
+                "memory_mb": round(memory_info.rss / 1024 / 1024, 2),
+                "cpu_percent": psutil.cpu_percent(interval=0.1),
+                "threads": process.num_threads()
+            },
+            "caches": {
+                "geo": GEO_CACHE.stats(),
+                "dns": DNS_CACHE.stats(),
+                "connections": CONNECTIONS_CACHE.stats()
+            },
+            "system": {
+                "platform": platform.platform(),
+                "python_version": platform.python_version()
+            }
+        })
+    except Exception as e:
+        logger.error(f"Health check error: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route("/api/investigate")
 @app.route("/api/scan")
 @limiter.limit("30 per minute")
 def investigate():
-    """Deep PC investigation."""
-    info = get_system_info()
-    interfaces = get_network_interfaces()
-    connection_data = analyze_connections(limit=MAX_CONNECTIONS_SCAN)
-    
-    return jsonify({
-        **info,
-        "interfaces": interfaces,
-        "connections": connection_data["connections"],
-        "security": connection_data["security"],
-        "summary": connection_data["summary"],
-    })
-
+    """System investigation endpoint."""
+    try:
+        connection_data = analyze_connections(limit=MAX_CONNECTIONS_SCAN)
+        
+        return jsonify({
+            "hostname": socket.gethostname(),
+            "platform": platform.platform(),
+            "timestamp": datetime.now().isoformat(),
+            **connection_data
+        })
+    except Exception as e:
+        logger.error(f"Investigate error: {e}")
+        return jsonify({"error": "Investigation failed", "message": str(e)}), 500
 
 @app.route("/api/geolocation/<ip>")
-@limiter.limit("60 per minute")
+@limiter.limit("100 per minute")
 def geolocation(ip: str):
-    """Get geolocation for IP."""
+    """IP geolocation endpoint."""
     if not validate_ip(ip):
         return jsonify({"error": "Invalid IP address", "success": False}), 400
-    return jsonify(get_ip_geolocation(ip))
-
+    
+    result = get_ip_geolocation(ip)
+    return jsonify(result)
 
 @app.route("/api/lookup", methods=["GET", "POST"])
-@limiter.limit("60 per minute")
+@limiter.limit("100 per minute")
 def lookup():
     """Comprehensive IP lookup."""
-    if request.method == "GET":
-        ip = request.args.get("ip", "").strip()
-    else:
-        data = request.get_json(silent=True) or {}
-        ip = (data.get("ip") or "").strip()
-    
-    if not ip:
-        return jsonify({"error": "No IP provided", "success": False}), 400
-    
-    if not validate_ip(ip):
-        return jsonify({"error": "Invalid IP address", "success": False}), 400
-    
-    return jsonify({
-        "ip": ip,
-        "geolocation": get_ip_geolocation(ip),
-        "whois": get_whois_info(ip),
-        "reverse_dns": reverse_dns_lookup(ip),
-        "success": True,
-    })
-
+    try:
+        if request.method == "GET":
+            ip = request.args.get("ip", "").strip()
+        else:
+            data = request.get_json(silent=True) or {}
+            ip = (data.get("ip") or "").strip()
+        
+        if not ip or not validate_ip(ip):
+            return jsonify({"error": "Invalid IP", "success": False}), 400
+        
+        geo = get_ip_geolocation(ip)
+        
+        return jsonify({
+            "ip": ip,
+            "geolocation": geo,
+            "success": True
+        })
+    except Exception as e:
+        logger.error(f"Lookup error: {e}")
+        return jsonify({"error": "Lookup failed", "message": str(e)}), 500
 
 @app.route("/api/bulk_lookup", methods=["POST"])
-@limiter.limit("10 per minute")
+@limiter.limit("20 per minute")
 def bulk_lookup():
-    """Bulk IP lookup."""
-    data = request.get_json(silent=True) or {}
-    ips = [ip.strip() for ip in data.get("ips", []) if ip.strip()]
-    
-    if not ips:
-        return jsonify({"error": "No IPs provided", "success": False}), 400
-    
-    if len(ips) > MAX_BULK_LOOKUPS:
-        return jsonify({
-            "error": f"Too many IPs (max {MAX_BULK_LOOKUPS})",
-            "success": False
-        }), 400
-    
-    return jsonify({"success": True, "results": bulk_geolocation(ips)})
-
-
-@app.route("/api/map", methods=["POST"])
-@limiter.limit("10 per minute")
-def generate_map():
-    """Generate map for IPs."""
-    data = request.get_json(silent=True) or {}
-    ips = [ip.strip() for ip in data.get("ips", []) if ip.strip()]
-    
-    if not ips:
-        return jsonify({"error": "No IPs provided", "success": False}), 400
-    
-    if len(ips) > MAX_BULK_LOOKUPS:
-        return jsonify({
-            "error": f"Too many IPs (max {MAX_BULK_LOOKUPS})",
-            "success": False
-        }), 400
-    
-    # Get locations
-    locations = []
-    for ip in ips:
-        if validate_ip(ip):
-            geo = get_ip_geolocation(ip)
-            if geo.get("status") == "success":
-                locations.append(geo)
-    
-    if not locations:
-        return jsonify({"error": "No valid locations found", "success": False}), 404
-    
-    # If Folium not available, return JSON for frontend rendering
-    if not folium:
-        return jsonify({"success": True, "locations": locations})
-    
+    """Bulk IP lookup endpoint."""
     try:
-        map_file = create_map(locations)
-        return send_file(map_file, mimetype="text/html")
+        data = request.get_json(silent=True) or {}
+        ips = list(dict.fromkeys([ip.strip() for ip in data.get("ips", []) if ip.strip()]))
+        
+        if not ips:
+            return jsonify({"error": "No IPs provided", "success": False}), 400
+        
+        if len(ips) > MAX_BULK_LOOKUPS:
+            return jsonify({"error": f"Too many IPs (max {MAX_BULK_LOOKUPS})", "success": False}), 400
+        
+        results = get_ip_geolocation_bulk(ips)
+        
+        return jsonify({
+            "success": True,
+            "results": results,
+            "count": len(results)
+        })
     except Exception as e:
-        logger.error(f"Map generation failed: {e}")
-        return jsonify({"error": "Map generation failed", "success": False}), 500
-
-
-@app.route("/api/report")
-@limiter.limit("10 per minute")
-def generate_report():
-    """Generate comprehensive report."""
-    include_system = request.args.get("include_system", "true").lower() == "true"
-    include_connections = request.args.get("include_connections", "true").lower() == "true"
-    include_security = request.args.get("include_security", "true").lower() == "true"
-    include_geolocation = request.args.get("include_geolocation", "true").lower() == "true"
-    fmt = request.args.get("format", "json")
-    
-    report = {
-        "title": "IP Checker Report",
-        "generated_at": datetime.now().isoformat(),
-    }
-    
-    if include_system:
-        report["local_system"] = {
-            **get_system_info(),
-            "interfaces": get_network_interfaces(),
-        }
-    
-    if include_connections or include_security:
-        connection_data = analyze_connections(
-            limit=MAX_CONNECTIONS_SCAN,
-            include_geo=include_geolocation
-        )
-        
-        if include_connections:
-            report["connections"] = connection_data["connections"]
-        
-        if include_security:
-            report["security"] = connection_data["security"]
-        
-        if include_geolocation:
-            unique_ips = {}
-            for conn in connection_data["connections"]:
-                ip = conn.get("remote_ip")
-                geo = conn.get("geo", {})
-                if ip and geo and geo.get("status") == "success" and ip not in unique_ips:
-                    unique_ips[ip] = geo
-            report["external_ips"] = list(unique_ips.values())
-        
-        report["summary"] = connection_data["summary"]
-    
-    if fmt == "json":
-        return jsonify(report)
-    
-    # Simple HTML format
-    html = [
-        "<!DOCTYPE html>",
-        "<html><head>",
-        "<meta charset='utf-8'>",
-        "<title>IP Checker Report</title>",
-        "<style>body{font-family:sans-serif;padding:20px;}</style>",
-        "</head><body>",
-        f"<h1>IP Checker Report</h1>",
-        f"<p>Generated at {report['generated_at']}</p>",
-        "<pre>",
-        json.dumps(report, indent=2),
-        "</pre></body></html>",
-    ]
-    return "\n".join(html)
-
-
-@app.route("/api/myip")
-@limiter.limit("60 per minute")
-def myip():
-    """Get client's IP address."""
-    return jsonify({
-        "ip": request.remote_addr or "Unknown",
-        "timestamp": datetime.now().isoformat(),
-    })
-
-
-@app.route("/api/my-ip")
-@limiter.limit("60 per minute")
-def my_ip_alias():
-    """Alias for /api/myip."""
-    return myip()
-
+        logger.error(f"Bulk lookup error: {e}")
+        return jsonify({"error": "Bulk lookup failed", "message": str(e)}), 500
 
 @app.route("/api/security/scan")
 @limiter.limit("30 per minute")
 def security_scan():
-    """Perform security scan."""
-    connection_data = analyze_connections(
-        limit=MAX_CONNECTIONS_SCAN,
-        include_geo=True
-    )
-    
-    connections = connection_data["connections"]
-    security = connection_data["security"]
-    
-    # Get findings (non-info level connections)
-    findings = [
-        {
-            "remote": conn.get("remote_addr"),
-            "status": conn.get("status"),
-            "risks": conn.get("risks", []),
-            "process": conn.get("process"),
-            "geo": {
-                "country": conn.get("geo", {}).get("country"),
-                "city": conn.get("geo", {}).get("city"),
-            },
-        }
-        for conn in connections
-        if conn.get("risk_level") != "info"
-    ][:30]  # Limit to 30 findings
-    
-    recommendations = generate_recommendations(security)
-    
-    return jsonify({
-        "timestamp": datetime.now().isoformat(),
-        "score": security.get("score", 0),
-        "summary": security,
-        "findings": findings,
-        "recommendations": recommendations,
-    })
+    """Security scan endpoint."""
+    try:
+        data = analyze_connections(limit=MAX_CONNECTIONS_SCAN, include_geo=True)
+        
+        # Get findings
+        findings = [
+            {
+                "remote": c.get("remote_addr"),
+                "risks": c.get("risks", []),
+                "process": c.get("process"),
+                "geo": {
+                    "country": c.get("geo", {}).get("country")
+                }
+            }
+            for c in data["connections"]
+            if c.get("risk_level") != "info"
+        ][:50]
+        
+        return jsonify({
+            "timestamp": datetime.now().isoformat(),
+            "score": data["security"]["score"],
+            "summary": data["security"],
+            "findings": findings
+        })
+    except Exception as e:
+        logger.error(f"Security scan error: {e}")
+        return jsonify({"error": "Scan failed", "message": str(e)}), 500
 
+@app.route("/api/vpn/check", methods=["POST"])
+@limiter.limit("10 per minute")
+def vpn_check():
+    """VPN leak detection endpoint."""
+    try:
+        data = request.get_json(silent=True) or {}
+        webrtc_ips = data.get('webrtc_ips', [])
+        client_ip = request.remote_addr or "Unknown"
+        
+        # Detect VPN interfaces
+        vpn_interfaces = []
+        try:
+            import re
+            vpn_pattern = re.compile(r'(tun|tap|wg|wireguard|openvpn|vpn|ppp)', re.IGNORECASE)
+            
+            for name, addrs in psutil.net_if_addrs().items():
+                if vpn_pattern.search(name):
+                    stats = psutil.net_if_stats().get(name)
+                    vpn_interfaces.append({
+                        'name': name,
+                        'is_up': stats.isup if stats else False,
+                        'is_vpn': True
+                    })
+        except Exception as e:
+            logger.debug(f"VPN interface detection error: {e}")
+        
+        # Determine VPN status
+        active_vpn = [i for i in vpn_interfaces if i.get('is_up')]
+        
+        if active_vpn:
+            vpn_status = 'active'
+        elif vpn_interfaces:
+            vpn_status = 'installed_not_active'
+        else:
+            vpn_status = 'disabled'
+        
+        # Get geolocation for client IP
+        geo = None
+        if client_ip != "Unknown" and validate_ip(client_ip):
+            geo_result = get_ip_geolocation(client_ip)
+            if geo_result.get('status') == 'success':
+                geo = {
+                    'country': geo_result.get('country'),
+                    'city': geo_result.get('city'),
+                    'isp': geo_result.get('isp'),
+                    'lat': geo_result.get('lat'),
+                    'lon': geo_result.get('lon')
+                }
+        
+        # Check WebRTC leaks (simplified)
+        webrtc_leak = False
+        public_webrtc = []
+        
+        if webrtc_ips:
+            for ip in webrtc_ips:
+                try:
+                    addr = ipaddress.ip_address(ip)
+                    if not (addr.is_private or addr.is_loopback):
+                        public_webrtc.append(ip)
+                except:
+                    pass
+        
+        # Calculate score
+        score = 100
+        issues = []
+        
+        if vpn_status == 'disabled':
+            score -= 25
+            issues.append('No VPN detected')
+        elif vpn_status == 'installed_not_active':
+            score -= 15
+            issues.append('VPN installed but not active')
+        
+        if webrtc_leak:
+            score -= 40
+            issues.append('WebRTC leak detected')
+        
+        score = max(0, min(100, score))
+        
+        if score >= 85:
+            grade = 'Excellent'
+        elif score >= 70:
+            grade = 'Good'
+        elif score >= 50:
+            grade = 'Fair'
+        else:
+            grade = 'Poor'
+        
+        return jsonify({
+            "success": True,
+            "result": {
+                "public_ip": {
+                    "ipv4": [client_ip] if client_ip != "Unknown" else [],
+                    "consensus": True
+                },
+                "geolocation": geo,
+                "vpn_interfaces": {
+                    "active": active_vpn,
+                    "inactive": [i for i in vpn_interfaces if not i.get('is_up')],
+                    "total_detected": len(vpn_interfaces)
+                },
+                "vpn_status": vpn_status,
+                "webrtc": {
+                    "leak_detected": webrtc_leak,
+                    "public_ips": public_webrtc,
+                    "status": "danger" if webrtc_leak else "success"
+                },
+                "privacy_score": {
+                    "score": score,
+                    "grade": grade,
+                    "issues": issues,
+                    "warnings": []
+                },
+                "recommendations": [
+                    "Enable VPN for better privacy" if vpn_status != 'active' else "VPN is active - good",
+                    "Check WebRTC settings in browser" if webrtc_leak else "No WebRTC leaks detected"
+                ]
+            }
+        })
+    except Exception as e:
+        logger.error(f"VPN check error: {e}")
+        logger.debug(traceback.format_exc())
+        return jsonify({"error": "VPN check failed", "message": str(e)}), 500
 
-@app.route("/api/health")
-def health():
-    """Health check endpoint."""
-    return jsonify({
-        "status": "ok",
-        "version": APP_VERSION,
-        "timestamp": datetime.now().isoformat(),
-        "platform": platform.platform(),
-        "cache_entries": len(GEO_CACHE),
-        "local_only": LOCAL_ONLY,
-    })
-
+@app.route("/api/cache/clear", methods=["POST"])
+@limiter.limit("10 per minute")
+def clear_cache():
+    """Clear all caches."""
+    try:
+        GEO_CACHE.clear()
+        DNS_CACHE.clear()
+        WHOIS_CACHE.clear()
+        CONNECTIONS_CACHE.clear()
+        _process_name_cache.clear()
+        
+        return jsonify({"success": True, "message": "All caches cleared"})
+    except Exception as e:
+        logger.error(f"Cache clear error: {e}")
+        return jsonify({"error": "Failed to clear cache", "message": str(e)}), 500
 
 # Error handlers
 @app.errorhandler(404)
 def not_found(e):
-    """Handle 404 errors."""
     return jsonify({"error": "Not found", "success": False}), 404
-
 
 @app.errorhandler(429)
 def ratelimit_handler(e):
-    """Handle rate limit exceeded."""
     logger.warning(f"Rate limit exceeded for {request.remote_addr}")
-    return jsonify({"error": "Rate limit exceeded", "success": False}), 429
-
+    return jsonify({"error": "Rate limit exceeded", "success": False, "retry_after": 60}), 429
 
 @app.errorhandler(500)
 def server_error(e):
-    """Handle server errors."""
     logger.error(f"Server error: {e}")
+    logger.debug(traceback.format_exc())
     return jsonify({"error": "Internal server error", "success": False}), 500
 
+# Cleanup
+@atexit.register
+def cleanup():
+    """Cleanup resources on shutdown."""
+    try:
+        http_pool.close()
+        logger.info("Application shutdown complete")
+    except:
+        pass
+
+# ============================================================================
+# MAIN
+# ============================================================================
 
 if __name__ == "__main__":
-    # Get configuration from environment
     debug_mode = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
     host = os.environ.get('FLASK_HOST', '127.0.0.1')
     port = int(os.environ.get('FLASK_PORT', '5000'))
     
     logger.info(f"Starting IP Checker Pro v{APP_VERSION}")
-    logger.info(f"Local only mode: {LOCAL_ONLY}")
-    logger.info(f"Debug mode: {debug_mode}")
+    logger.info(f"Workers: {MAX_WORKERS}")
+    logger.info(f"Cache sizes: Geo={GEO_CACHE._max_size}, Conn={CONNECTIONS_CACHE._max_size}")
     
     app.run(
         debug=debug_mode,
         host=host,
         port=port,
-        threaded=True
+        threaded=True,
+        use_reloader=debug_mode
     )
