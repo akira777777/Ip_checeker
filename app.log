@@ -1,0 +1,12 @@
+2026-02-11 17:49:35,040 - __main__ - INFO - [app.py:927] - Starting IP Checker Pro v2.1.0-security-hardened
+2026-02-11 17:49:35,041 - __main__ - INFO - [app.py:928] - Local only mode: True
+2026-02-11 17:49:35,041 - __main__ - INFO - [app.py:929] - Debug mode: False
+2026-02-11 17:49:35,064 - werkzeug - INFO - [_internal.py:97] - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-02-11 17:49:35,064 - werkzeug - INFO - [_internal.py:97] - [33mPress CTRL+C to quit[0m
+2026-02-11 17:49:54,021 - __main__ - INFO - [app.py:927] - Starting IP Checker Pro v2.1.0-security-hardened
+2026-02-11 17:49:54,021 - __main__ - INFO - [app.py:928] - Local only mode: True
+2026-02-11 17:49:54,021 - __main__ - INFO - [app.py:929] - Debug mode: False
+2026-02-11 17:49:54,038 - werkzeug - INFO - [_internal.py:97] - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-02-11 17:49:54,038 - werkzeug - INFO - [_internal.py:97] - [33mPress CTRL+C to quit[0m
