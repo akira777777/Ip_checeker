@@ -5,13 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IP Checker Pro - Network Intelligence Platform</title>
     
+    <!-- Performance Optimization Meta Tags -->
+    <meta name="description" content="Advanced IP checker with geolocation, security scanning, and network analysis">
+    <meta name="theme-color" content="#3b82f6">
+    <link rel="manifest" href="/static/manifest.json">
+    
     <!-- Preconnect to external domains -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.jsdelivr.net/npm/tailwindcss-cdn@3.4.10/tailwindcss.js" defer></script>
+    <!-- DNS Prefetch for external resources -->
+    <link rel="dns-prefetch" href="https://ip-api.com">
+    <link rel="dns-prefetch" href="https://ipapi.co">
     
     <!-- Critical CSS inline -->
     <style>
@@ -47,15 +53,24 @@
         @media (prefers-reduced-motion: reduce) {
             *,*::before,*::after{animation-duration:0.01ms!important;transition-duration:0.01ms!important}
         }
+        
+        /* Font loading optimization */
+        @font-face {
+            font-family: 'Inter';
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: url(https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeAmM.woff2) format('woff2');
+        }
     </style>
     
-    <!-- Font Awesome async -->
+    <!-- Font Awesome async with preload -->
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     
-    <!-- Custom Styles -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" media="print" onload="this.media='all'">
-    <link rel="stylesheet" href="{{ url_for('static', filename='enhanced-design.css') }}" media="print" onload="this.media='all'">
+    <!-- Custom Styles with lazy loading -->
+    <link rel="preload" href="{{ url_for('static', filename='style.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" href="{{ url_for('static', filename='enhanced-design.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
     
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg">
 </head>
@@ -429,8 +444,14 @@
     <!-- Lazy loader -->
     <script src="{{ url_for('static', filename='lazy-loader.js') }}"></script>
 
+    <!-- Performance Optimizer -->
+    <script src="{{ url_for('static', filename='performance-optimizer.js') }}" defer></script>
+    
     <!-- Main optimized app script -->
-    <script src="{{ url_for('static', filename='main_optimized.js') }}"></script>
+    <script src="{{ url_for('static', filename='main_optimized.js') }}" defer></script>
+    
+    <!-- Lazy loader for heavy libraries -->
+    <script src="{{ url_for('static', filename='lazy-loader.js') }}" defer></script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
