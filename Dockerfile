@@ -1,46 +1,24 @@
-# IP Checker Pro - Docker Image
-# ==============================
 
-FROM python:3.11-slim
+# For more information, please refer to https://aka.ms/vscode-docker-python
+FROM python:3-slim
 
-# Set environment variables
+# Keeps Python from generating .pyc files in the container
 ENV PYTHONDONTWRITEBYTECODE=1
+
+# Turns off buffering for easier container logging
 ENV PYTHONUNBUFFERED=1
-ENV PYTHONDUNBUFFERED=1
 
-# Security: Don't run as root
-RUN groupadd -r appgroup && useradd -r -g appgroup appuser
-
-# Set work directory
-WORKDIR /app
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    python3-dev \
-    libffi-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Python dependencies
+# Install pip requirements
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+RUN python -m pip install -r requirements.txt
 
-# Copy project files
-COPY --chown=appuser:appgroup . .
+WORKDIR /app
+COPY . /app
 
-# Create cache directory with proper permissions
-RUN mkdir -p /app/cache && chown -R appuser:appgroup /app
-
-# Switch to non-root user
+# Creates a non-root user with an explicit UID and adds permission to access the /app folder
+# For more info, please refer to https://aka.ms/vscode-docker-python-configure-containers
+RUN adduser -u 5678 --disabled-password --gecos "" appuser && chown -R appuser /app
 USER appuser
 
-# Expose port
-EXPOSE 5000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:5000/api/health')" || exit 1
-
-# Run the application
+# During debugging, this entry point will be overridden. For more information, please refer to https://aka.ms/vscode-docker-python-debug
 CMD ["python", "app.py"]

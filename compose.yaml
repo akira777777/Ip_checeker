@@ -1,0 +1,6 @@
+services:
+  ipcheceker:
+    image: ipcheceker
+    build:
+      context: .
+      dockerfile: ./Dockerfile
