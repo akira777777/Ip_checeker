@@ -8,7 +8,7 @@
   "editor.wordWrap": "off",
   // РАВНОЕ РАСПРЕДЕЛЕНИЕ ПРОСТРАНСТВА И ПОСТОЯННАЯ КОНФИГУРАЦИЯ
   "workbench.panel.defaultLocation": "bottom",
-  "workbench.sideBar.location": "right",
+  "workbench.sideBar.location": "left",
   "workbench.statusBar.visible": true,
   // ПОЛНАЯ БЛОКИРОВКА перемещения элементов С РАВНЫМИ ОТСТУПАМИ
   "workbench.layoutControl.enabled": false,
@@ -81,7 +81,6 @@
   "kimi-code.lockEditorGroups": true,
   "kimi-code.preventNewPanels": true,
   "kimi-code.freezeLayout": true,
-  "kimi-code.permanentConfiguration": true,
-  "files.autoSave": "afterDelay",
-  "workbench.editor.centeredLayoutFixedWidth": false
+"kimi-code.permanentConfiguration": true,
+"files.autoSave": "afterDelay"
 }

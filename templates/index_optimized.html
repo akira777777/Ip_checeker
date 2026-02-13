@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP Checker Pro - Network Intelligence Platform</title>
+    
+    <!-- Performance Optimization Meta Tags -->
+    <meta name="description" content="Advanced IP checker with geolocation, security scanning, and network analysis">
+    <meta name="theme-color" content="#3b82f6">
+    <link rel="manifest" href="/static/manifest.json">
+    
+    <!-- Preconnect to external domains -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    
+    <!-- DNS Prefetch for external resources -->
+    <link rel="dns-prefetch" href="https://ip-api.com">
+    <link rel="dns-prefetch" href="https://ipapi.co">
+    
+    <!-- Critical CSS inline -->
+    <style>
+        /* Critical styles for initial render */
+        *,*::before,*::after{box-sizing:border-box}
+        html,body{margin:0;padding:0;height:100%}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0b0f1a;color:#e2e8f0}
+        .app-container{display:flex;height:100vh;overflow:hidden}
+        .sidebar{width:260px;background:#10172a;border-right:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column}
+        .sidebar-header{padding:1.5rem;border-bottom:1px solid rgba(255,255,255,0.06)}
+        .logo{display:flex;align-items:center;gap:0.75rem;font-size:1.25rem;font-weight:700;color:#3b82f6}
+        .sidebar-nav{flex:1;padding:1rem 0;display:flex;flex-direction:column;gap:0.25rem}
+        .nav-item{display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1.25rem;color:#94a3b8;text-decoration:none;border-radius:0.5rem;margin:0 0.75rem;transition:all 0.2s;background:none;border:none;cursor:pointer;font-size:0.9375rem}
+        .nav-item:hover{color:#e2e8f0;background:rgba(255,255,255,0.05)}
+        .nav-item.active{color:#3b82f6;background:rgba(59,130,246,0.1)}
+        .main-content{flex:1;display:flex;flex-direction:column;overflow:hidden}
+        .top-header{height:64px;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06);background:#10172a}
+        .content-area{flex:1;overflow-y:auto;padding:1.5rem}
+        .tab-content{display:none}
+        .tab-content.active{display:block;animation:fadeIn 0.3s ease}
+        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+        .skeleton{background:linear-gradient(90deg,#1e293b 25%,#334155 50%,#1e293b 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
+        @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+        .dashboard-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;margin-bottom:1.5rem}
+        .stat-card{background:#10172a;border:1px solid rgba(255,255,255,0.06);border-radius:0.75rem;padding:1.25rem;display:flex;align-items:center;gap:1rem}
+        .hidden{display:none!important}
+        
+        /* Loading skeleton */
+        .skeleton-card{height:100px;background:#10172a;border-radius:0.75rem;border:1px solid rgba(255,255,255,0.06);overflow:hidden}
+        .skeleton-line{height:16px;background:rgba(255,255,255,0.1);border-radius:4px;margin:8px 0}
+        
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            *,*::before,*::after{animation-duration:0.01ms!important;transition-duration:0.01ms!important}
+        }
+        
+        /* Font loading optimization */
+        @font-face {
+            font-family: 'Inter';
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: url(https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeAmM.woff2) format('woff2');
+        }
+    </style>
+    
+    <!-- Font Awesome async with preload -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
+    
+    <!-- Custom Styles with lazy loading -->
+    <link rel="preload" href="{{ url_for('static', filename='style.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" href="{{ url_for('static', filename='enhanced-design.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>IP Checker Pro</span>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav" role="tablist" aria-label="Main navigation tabs">
+                <button id="tab-dashboard" class="nav-item active" data-tab="dashboard" aria-label="Dashboard tab" role="tab" aria-selected="true" aria-controls="dashboard">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Dashboard</span>
+                </button>
+                <button id="tab-investigate" class="nav-item" data-tab="investigate" aria-label="PC Investigation tab" role="tab" aria-selected="false" aria-controls="investigate" tabindex="-1">
+                    <i class="fas fa-search"></i>
+                    <span>PC Investigation</span>
+                </button>
+                <button id="tab-lookup" class="nav-item" data-tab="lookup" aria-label="IP Geolocation tab" role="tab" aria-selected="false" aria-controls="lookup" tabindex="-1">
+                    <i class="fas fa-globe"></i>
+                    <span>IP Geolocation</span>
+                </button>
+                <button id="tab-map" class="nav-item" data-tab="map" aria-label="Visual Map tab" role="tab" aria-selected="false" aria-controls="map" tabindex="-1">
+                    <i class="fas fa-map-marked-alt"></i>
+                    <span>Visual Map</span>
+                </button>
+                <button id="tab-security" class="nav-item" data-tab="security" aria-label="Security Scan tab" role="tab" aria-selected="false" aria-controls="security" tabindex="-1">
+                    <i class="fas fa-lock"></i>
+                    <span>Security Scan</span>
+                </button>
+                <button id="tab-report" class="nav-item" data-tab="report" aria-label="Reports tab" role="tab" aria-selected="false" aria-controls="report" tabindex="-1">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Reports</span>
+                </button>
+                <button id="tab-history" class="nav-item" data-tab="history" aria-label="History tab" role="tab" aria-selected="false" aria-controls="history" tabindex="-1">
+                    <i class="fas fa-history"></i>
+                    <span>History</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="connection-status">
+                    <span class="status-dot online"></span>
+                    <span>System Online</span>
+                </div>
+                <p class="version">v2.3.1-improved</p>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="top-header">
+                <h1 id="page-title">Dashboard</h1>
+                <div class="header-actions">
+                    <button class="btn-icon" id="theme-toggle" title="Toggle Theme" aria-label="Toggle theme">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <button class="btn-icon" id="refresh-btn" title="Refresh Data" aria-label="Refresh data">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <div class="user-menu">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Dashboard Tab -->
+                <section id="dashboard" class="tab-content active" role="tabpanel" aria-labelledby="tab-dashboard" aria-hidden="false">
+                    <!-- Skeleton Loading State -->
+                    <div id="dashboard-skeleton" class="dashboard-grid">
+                        <div class="skeleton-card"><div class="skeleton" style="height:100%"></div></div>
+                        <div class="skeleton-card"><div class="skeleton" style="height:100%"></div></div>
+                        <div class="skeleton-card"><div class="skeleton" style="height:100%"></div></div>
+                        <div class="skeleton-card"><div class="skeleton" style="height:100%"></div></div>
+                    </div>
+                    
+                    <!-- Real-time Status Indicator -->
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="realtime-indicator active" id="realtime-status">
+                            <span>●</span> Live Security Monitoring
+                        </div>
+                        <span class="text-xs text-muted" id="last-update">Updating...</span>
+                    </div>
+
+                    <!-- Enhanced Security Status Header -->
+                    <div id="security-status-header" class="security-status-header excellent">
+                        <div class="security-status-content">
+                            <div class="security-main-indicator">
+                                <div class="security-status-icon security-icon excellent">
+                                    <i class="fas fa-shield-alt"></i>
+                                </div>
+                                <div class="security-status-text">
+                                    <h2 class="security-status-title">EXCELLENT SECURITY</h2>
+                                    <p class="security-status-description">Strong security posture with minimal risks</p>
+                                </div>
+                            </div>
+                            <div class="security-score-display">
+                                <h3 class="security-score-number excellent">92<span class="text-2xl">/100</span></h3>
+                                <p class="security-score-label">SECURITY SCORE</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Enhanced Security Metrics Grid -->
+                    <div class="security-metrics-grid">
+                        <div class="security-metric-card good" data-priority="critical">
+                            <div class="security-metric-icon"><i class="fas fa-fire"></i></div>
+                            <div class="security-metric-value good" id="critical-threats">0</div>
+                            <div class="security-metric-label">THREATS</div>
+                        </div>
+                        <div class="security-metric-card good" data-priority="high">
+                            <div class="security-metric-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                            <div class="security-metric-value good" id="high-warnings">2</div>
+                            <div class="security-metric-label">WARNINGS</div>
+                        </div>
+                        <div class="security-metric-card good" data-priority="good">
+                            <div class="security-metric-icon"><i class="fas fa-check-circle"></i></div>
+                            <div class="security-metric-value good" id="secure-connections">35</div>
+                            <div class="security-metric-label">SECURE</div>
+                        </div>
+                        <div class="security-metric-card info" data-priority="info">
+                            <div class="security-metric-icon"><i class="fas fa-globe"></i></div>
+                            <div class="security-metric-value info" id="total-connections">42</div>
+                            <div class="security-metric-label">TOTAL</div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Section -->
+                    <div class="charts-grid">
+                        <div class="chart-card">
+                            <h3>Connection Types</h3>
+                            <div id="connectionChart"></div>
+                        </div>
+                        <div class="chart-card">
+                            <h3>Top Countries</h3>
+                            <div id="countriesChart"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- PC Investigation Tab -->
+                <section id="investigate" class="tab-content" role="tabpanel" aria-labelledby="tab-investigate" aria-hidden="true">
+                    <div class="section-header">
+                        <h2>Deep PC Investigation</h2>
+                        <div class="scan-controls">
+                            <button id="btn-investigate" class="btn-primary" aria-label="Start scan">
+                                <i class="fas fa-play"></i> Start Scan
+                            </button>
+                            <button id="btn-export-scan" class="btn-secondary" disabled aria-label="Export scan results">
+                                <i class="fas fa-download"></i> Export
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="scan-progress" id="scan-progress" style="display: none;">
+                        <div class="progress-bar"><div class="progress-fill"></div></div>
+                        <span class="progress-text">Scanning...</span>
+                    </div>
+
+                    <div class="results-grid">
+                        <div class="result-panel">
+                            <h3><i class="fas fa-server"></i> System Information</h3>
+                            <div id="system-info" class="info-grid">
+                                <div class="info-item"><span class="label">Hostname</span><span class="value" id="sys-hostname">-</span></div>
+                                <div class="info-item"><span class="label">Platform</span><span class="value" id="sys-platform">-</span></div>
+                                <div class="info-item"><span class="label">Scan Time</span><span class="value" id="sys-time">-</span></div>
+                                <div class="info-item"><span class="label">Interfaces</span><span class="value" id="sys-interfaces">-</span></div>
+                            </div>
+                        </div>
+
+                        <div class="result-panel wide">
+                            <h3><i class="fas fa-ethernet"></i> Network Interfaces</h3>
+                            <div id="interfaces-list" class="interfaces-list"></div>
+                        </div>
+
+                        <div class="result-panel wide">
+                            <h3><i class="fas fa-exchange-alt"></i> Active Connections</h3>
+                            <div id="connections-table"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- IP Geolocation Tab -->
+                <section id="lookup" class="tab-content" role="tabpanel" aria-labelledby="tab-lookup" aria-hidden="true">
+                    <div class="lookup-container">
+                        <div class="lookup-input-panel">
+                            <h2>IP Geolocation Lookup</h2>
+                            <p>Enter an IP address to get detailed geolocation information.</p>
+                            
+                            <div class="input-group large">
+                                <input type="text" id="ip-input" placeholder="Enter IP address (e.g., 8.8.8.8)" aria-label="IP address input">
+                                <button id="btn-lookup" class="btn-primary"><i class="fas fa-search"></i> Lookup</button>
+                            </div>
+
+                            <div class="quick-actions">
+                                <span>Quick:</span>
+                                <button class="btn-chip" data-ip="8.8.8.8">Google DNS</button>
+                                <button class="btn-chip" data-ip="1.1.1.1">Cloudflare</button>
+                                <button class="btn-chip" id="my-ip-btn">My IP</button>
+                            </div>
+
+                            <div class="recent-lookups">
+                                <h4>Recent Lookups</h4>
+                                <div id="recent-ips" class="recent-list"></div>
+                            </div>
+                        </div>
+
+                        <div class="lookup-results-panel">
+                            <div id="lookup-empty" class="empty-state">
+                                <i class="fas fa-globe"></i>
+                                <p>Enter an IP to see results</p>
+                            </div>
+                            
+                            <div id="lookup-results" class="lookup-results" style="display: none;">
+                                <div class="ip-header">
+                                    <h3 id="result-ip">-</h3>
+                                    <span id="result-flag" class="flag"></span>
+                                </div>
+
+                                <div class="result-sections">
+                                    <div class="result-section">
+                                        <h4><i class="fas fa-map-marker-alt"></i> Location</h4>
+                                        <div class="location-grid">
+                                            <div class="loc-item"><span class="loc-label">Country</span><span class="loc-value" id="result-country">-</span></div>
+                                            <div class="loc-item"><span class="loc-label">Region</span><span class="loc-value" id="result-region">-</span></div>
+                                            <div class="loc-item"><span class="loc-label">City</span><span class="loc-value" id="result-city">-</span></div>
+                                            <div class="loc-item"><span class="loc-label">ZIP</span><span class="loc-value" id="result-zip">-</span></div>
+                                            <div class="loc-item"><span class="loc-label">Coordinates</span><span class="loc-value" id="result-coords">-</span></div>
+                                            <div class="loc-item"><span class="loc-label">Timezone</span><span class="loc-value" id="result-timezone">-</span></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="result-section">
+                                        <h4><i class="fas fa-building"></i> Network</h4>
+                                        <div class="info-list">
+                                            <div class="info-row"><span>ISP</span><span id="result-isp">-</span></div>
+                                            <div class="info-row"><span>Organization</span><span id="result-org">-</span></div>
+                                            <div class="info-row"><span>ASN</span><span id="result-asn">-</span></div>
+                                            <div class="info-row"><span>Hostname</span><span id="result-hostname">-</span></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="mini-map" class="mini-map"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Map View Tab -->
+                <section id="map" class="tab-content" role="tabpanel" aria-labelledby="tab-map" aria-hidden="true">
+                    <div class="map-controls">
+                        <div class="map-input-group">
+                            <textarea id="ips-input" placeholder="Enter IP addresses (one per line)" aria-label="IP addresses for map"></textarea>
+                            <div class="map-actions">
+                                <button id="btn-map" class="btn-primary"><i class="fas fa-map"></i> Generate Map</button>
+                                <button id="btn-clear-map" class="btn-secondary"><i class="fas fa-trash"></i> Clear</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="map-container" class="map-container"></div>
+                </section>
+
+                <!-- Security Scan Tab -->
+                <section id="security" class="tab-content" role="tabpanel" aria-labelledby="tab-security" aria-hidden="true">
+                    <div class="security-dashboard">
+                        <div class="security-score-card">
+                            <div class="score-status">
+                                <span class="status-dot" id="security-status-dot"></span>
+                                <div>
+                                    <div class="status-label" id="security-status-label">Unknown</div>
+                                    <div class="status-sub" id="security-status-sub">Overall protection level</div>
+                                </div>
+                                <span class="status-badge" id="security-grade">N/A</span>
+                            </div>
+                            <div class="score-circle" id="security-score">
+                                <span class="score-value">-</span>
+                                <span class="score-label">Security Score</span>
+                            </div>
+                            <div class="score-metrics security-metrics-grid">
+                                <div class="metric danger"><div class="metric-icon"><i class="fas fa-fire"></i></div><div><div class="metric-label">Threats</div><div class="metric-value" id="metric-threats">0</div></div></div>
+                                <div class="metric warning"><div class="metric-icon"><i class="fas fa-exclamation-triangle"></i></div><div><div class="metric-label">Warnings</div><div class="metric-value" id="metric-warnings">0</div></div></div>
+                                <div class="metric success"><div class="metric-icon"><i class="fas fa-check-circle"></i></div><div><div class="metric-label">Secure</div><div class="metric-value" id="metric-secure">0</div></div></div>
+                                <div class="metric info"><div class="metric-icon"><i class="fas fa-globe"></i></div><div><div class="metric-label">Total</div><div class="metric-value" id="metric-total">0</div></div></div>
+                            </div>
+                        </div>
+
+                        <div class="security-findings">
+                            <div class="findings-header">
+                                <div>
+                                    <h3><i class="fas fa-shield-virus"></i> Critical Findings</h3>
+                                    <p class="muted small">Most risky connections shown first</p>
+                                </div>
+                            </div>
+                            <div id="security-list" class="findings-list">
+                                <div class="finding-item info">
+                                    <i class="fas fa-info-circle"></i>
+                                    <div class="finding-content">
+                                        <h4>Scan Required</h4>
+                                        <p>Run a PC Investigation to see security findings</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Reports Tab -->
+                <section id="report" class="tab-content" role="tabpanel" aria-labelledby="tab-report" aria-hidden="true">
+                    <div class="reports-container">
+                        <div class="report-config">
+                            <h2>Generate Report</h2>
+                            <div class="config-options">
+                                <label class="checkbox-item"><input type="checkbox" id="include-system" checked><span>Include System Information</span></label>
+                                <label class="checkbox-item"><input type="checkbox" id="include-connections" checked><span>Include Connection Details</span></label>
+                                <label class="checkbox-item"><input type="checkbox" id="include-security" checked><span>Include Security Analysis</span></label>
+                                <label class="checkbox-item"><input type="checkbox" id="include-geolocation" checked><span>Include Geolocation Data</span></label>
+                            </div>
+                            <div class="report-actions">
+                                <button id="btn-report" class="btn-primary"><i class="fas fa-file-alt"></i> Generate Report</button>
+                            </div>
+                        </div>
+
+                        <div class="report-preview">
+                            <div class="preview-header">
+                                <h3>Report Preview</h3>
+                                <div class="export-buttons" id="export-buttons" style="display: none;">
+                                    <button id="btn-download" class="btn-secondary"><i class="fas fa-download"></i> JSON</button>
+                                </div>
+                            </div>
+                            <div id="report-results" class="report-content">
+                                <div class="empty-state"><i class="fas fa-file-alt"></i><p>Generate a report to see preview</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- History Tab -->
+                <section id="history" class="tab-content" role="tabpanel" aria-labelledby="tab-history" aria-hidden="true">
+                    <div class="history-container">
+                        <div class="history-header">
+                            <h2>Lookup History</h2>
+                            <button id="clear-history" class="btn-secondary"><i class="fas fa-trash"></i> Clear History</button>
+                        </div>
+                        <div id="history-list" class="history-list">
+                            <div class="empty-state"><i class="fas fa-history"></i><p>No history yet</p></div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay" style="display: none;">
+        <div class="spinner"></div>
+        <p>Processing...</p>
+    </div>
+
+    <!-- Lazy loader -->
+    <script src="{{ url_for('static', filename='lazy-loader.js') }}"></script>
+
+    <!-- Performance Optimizer -->
+    <script src="{{ url_for('static', filename='performance-optimizer.js') }}" defer></script>
+    
+    <!-- Main optimized app script -->
+    <script src="{{ url_for('static', filename='main_optimized.js') }}" defer></script>
+    
+    <!-- Lazy loader for heavy libraries -->
+    <script src="{{ url_for('static', filename='lazy-loader.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Precise Location Detection - IP Checker Pro</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0b0f1a;
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        h1 {
+            color: #3b82f6;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .subtitle {
+            color: #64748b;
+            margin-bottom: 20px;
+        }
+        
+        .nav-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #64748b;
+            text-decoration: none;
+            margin-bottom: 20px;
+            transition: color 0.2s;
+        }
+        .nav-back:hover { color: #3b82f6; }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 20px;
+        }
+        
+        @media (max-width: 1000px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .map-container {
+            background: #10172a;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            height: 600px;
+            position: relative;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .card {
+            background: #10172a;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .card h3 {
+            color: #3b82f6;
+            margin-bottom: 15px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            font-weight: 500;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-secondary {
+            background: #1e293b;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .location-info {
+            margin-top: 15px;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            color: #64748b;
+            font-size: 13px;
+        }
+        
+        .info-value {
+            color: #e2e8f0;
+            font-weight: 500;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        
+        .accuracy-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .accuracy-excellent {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+        
+        .accuracy-good {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+        
+        .accuracy-fair {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+        
+        .accuracy-poor {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        .comparison-table th,
+        .comparison-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 13px;
+        }
+        
+        .comparison-table th {
+            color: #64748b;
+            font-weight: 500;
+        }
+        
+        .source-ip { color: #ef4444; }
+        .source-browser { color: #10b981; }
+        
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(11, 15, 26, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .loading-overlay.hidden {
+            display: none;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #1e293b;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+        
+        .alert-info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #60a5fa;
+        }
+        
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: #fbbf24;
+        }
+        
+        .legend-custom {
+            background: rgba(16, 23, 42, 0.95);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 5px 0;
+            font-size: 12px;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="nav-back">← Back to Dashboard</a>
+        
+        <h1>Precise Location Detection</h1>
+        <p class="subtitle">Compare IP geolocation vs Browser GPS/WiFi positioning accuracy</p>
+        
+        <div class="main-grid">
+            <div class="map-container">
+                <div id="map"></div>
+                <div class="loading-overlay" id="loading">
+                    <div class="spinner"></div>
+                    <p>Detecting your location...</p>
+                    <p style="color: #64748b; font-size: 12px; margin-top: 5px;">Please allow location access for best results</p>
+                </div>
+            </div>
+            
+            <div class="sidebar">
+                <div class="card">
+                    <h3>Detection Controls</h3>
+                    <button class="btn" id="detectBtn" onclick="detectLocation()">
+                        Detect My Location
+                    </button>
+                    <button class="btn btn-secondary" style="margin-top: 10px;" onclick="watchLocation()">
+                        Track Real-time
+                    </button>
+                    <button class="btn btn-secondary" style="margin-top: 10px;" onclick="stopWatching()">
+                        Stop Tracking
+                    </button>
+                </div>
+                
+                <div class="card" id="browserLocationCard" style="display: none;">
+                    <h3>Browser Location (Precise)</h3>
+                    <div class="location-info">
+                        <div class="info-row">
+                            <span class="info-label">Latitude</span>
+                            <span class="info-value" id="browserLat">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Longitude</span>
+                            <span class="info-value" id="browserLon">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Accuracy</span>
+                            <span class="info-value" id="browserAccuracy">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Method</span>
+                            <span class="info-value" id="browserMethod">-</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card" id="ipLocationCard" style="display: none;">
+                    <h3>IP Location (Estimate)</h3>
+                    <div class="location-info">
+                        <div class="info-row">
+                            <span class="info-label">IP Address</span>
+                            <span class="info-value" id="ipAddress">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">City</span>
+                            <span class="info-value" id="ipCity">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Country</span>
+                            <span class="info-value" id="ipCountry">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">ISP</span>
+                            <span class="info-value" id="ipISP">-</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card" id="comparisonCard" style="display: none;">
+                    <h3>Accuracy Comparison</h3>
+                    <table class="comparison-table">
+                        <thead>
+                            <tr>
+                                <th>Source</th>
+                                <th>Accuracy</th>
+                                <th>Type</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="source-browser">Browser</td>
+                                <td id="compareBrowserAcc">-</td>
+                                <td>GPS/WiFi</td>
+                            </tr>
+                            <tr>
+                                <td class="source-ip">IP</td>
+                                <td id="compareIpAcc">-</td>
+                                <td>Database</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="info-row" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
+                        <span class="info-label">Difference</span>
+                        <span class="info-value" id="locationDiff">-</span>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>About Accuracy</h3>
+                    <div class="alert alert-info">
+                        <strong>Browser Geolocation:</strong> Uses GPS, WiFi, and cell towers. Accuracy: 5-100 meters.
+                    </div>
+                    <div class="alert alert-warning">
+                        <strong>IP Geolocation:</strong> Based on ISP database. Accuracy: 1-50 kilometers.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="{{ url_for('static', filename='precise-location.js') }}"></script>
+    
+    <script>
+        let detector = null;
+        let watchId = null;
+        let map = null;
+        
+        async function init() {
+            detector = new PreciseLocationDetector();
+            
+            // Инициализируем карту
+            map = L.map('map').setView([50.0755, 14.4378], 13);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap',
+                maxZoom: 19
+            }).addTo(map);
+            
+            // Автоматически определяем местоположение при загрузке
+            detectLocation();
+        }
+        
+        async function detectLocation() {
+            const loading = document.getElementById('loading');
+            const btn = document.getElementById('detectBtn');
+            
+            loading.classList.remove('hidden');
+            btn.disabled = true;
+            
+            try {
+                // Получаем все локации
+                const locations = await detector.getAllLocations();
+                
+                // Очищаем карту
+                map.eachLayer(layer => {
+                    if (layer instanceof L.Marker || layer instanceof L.Circle || layer instanceof L.Polyline) {
+                        map.removeLayer(layer);
+                    }
+                });
+                
+                // Показываем браузерную локацию
+                if (locations.browser) {
+                    showBrowserLocation(locations.browser);
+                    
+                    // Центрируем карту
+                    map.setView([locations.browser.lat, locations.browser.lon], 16);
+                }
+                
+                // Показываем IP локацию
+                if (locations.ip) {
+                    showIPLocation(locations.ip);
+                    
+                    // Если нет браузерной локации, центрируем на IP
+                    if (!locations.browser) {
+                        map.setView([locations.ip.lat, locations.ip.lon], 13);
+                    }
+                }
+                
+                // Показываем сравнение
+                if (locations.browser && locations.ip) {
+                    showComparison(locations);
+                }
+                
+            } catch (error) {
+                console.error('Detection error:', error);
+                alert('Error detecting location: ' + error.message);
+            } finally {
+                loading.classList.add('hidden');
+                btn.disabled = false;
+            }
+        }
+        
+        function showBrowserLocation(location) {
+            // Обновляем UI
+            document.getElementById('browserLocationCard').style.display = 'block';
+            document.getElementById('browserLat').textContent = location.lat.toFixed(6);
+            document.getElementById('browserLon').textContent = location.lon.toFixed(6);
+            document.getElementById('browserAccuracy').innerHTML = 
+                `<span class="accuracy-badge accuracy-excellent">±${Math.round(location.accuracy)}m</span>`;
+            
+            let method = 'Unknown';
+            if (location.accuracy < 20) method = 'GPS';
+            else if (location.accuracy < 100) method = 'WiFi';
+            else method = 'Cell Tower';
+            document.getElementById('browserMethod').textContent = method;
+            
+            // Добавляем маркер на карту
+            const circle = L.circle([location.lat, location.lon], {
+                radius: location.accuracy,
+                fillColor: '#10b981',
+                color: '#10b981',
+                weight: 2,
+                opacity: 0.5,
+                fillOpacity: 0.15
+            }).addTo(map);
+            
+            const marker = L.circleMarker([location.lat, location.lon], {
+                radius: 8,
+                fillColor: '#10b981',
+                color: '#fff',
+                weight: 2,
+                fillOpacity: 1
+            }).addTo(map);
+            
+            marker.bindPopup(`
+                <b>Your Precise Location</b><br>
+                Source: Browser ${method}<br>
+                Accuracy: ±${Math.round(location.accuracy)}m<br>
+                Lat: ${location.lat.toFixed(6)}<br>
+                Lon: ${location.lon.toFixed(6)}
+            `);
+        }
+        
+        function showIPLocation(location) {
+            // Обновляем UI
+            document.getElementById('ipLocationCard').style.display = 'block';
+            document.getElementById('ipAddress').textContent = location.ip || 'Unknown';
+            document.getElementById('ipCity').textContent = location.city || 'Unknown';
+            document.getElementById('ipCountry').textContent = location.country || 'Unknown';
+            document.getElementById('ipISP').textContent = location.isp || 'Unknown';
+            
+            // Добавляем маркер на карту
+            const circle = L.circle([location.lat, location.lon], {
+                radius: 5000, // 5km для IP геолокации
+                fillColor: '#ef4444',
+                color: '#ef4444',
+                weight: 2,
+                opacity: 0.3,
+                fillOpacity: 0.1
+            }).addTo(map);
+            
+            const marker = L.circleMarker([location.lat, location.lon], {
+                radius: 6,
+                fillColor: '#ef4444',
+                color: '#fff',
+                weight: 2,
+                fillOpacity: 0.8
+            }).addTo(map);
+            
+            marker.bindPopup(`
+                <b>IP Location Estimate</b><br>
+                City: ${location.city || 'Unknown'}<br>
+                Country: ${location.country || 'Unknown'}<br>
+                ISP: ${location.isp || 'Unknown'}<br>
+                Accuracy: ~5km (estimated)
+            `);
+        }
+        
+        function showComparison(locations) {
+            document.getElementById('comparisonCard').style.display = 'block';
+            document.getElementById('compareBrowserAcc').innerHTML = 
+                `<span class="accuracy-badge accuracy-excellent">±${Math.round(locations.browser.accuracy)}m</span>`;
+            document.getElementById('compareIpAcc').innerHTML = 
+                `<span class="accuracy-badge accuracy-poor">~5km</span>`;
+            document.getElementById('locationDiff').textContent = 
+                Math.round(locations.distance) + ' km';
+            
+            // Рисуем линию между точками
+            if (locations.browser && locations.ip) {
+                L.polyline(
+                    [
+                        [locations.browser.lat, locations.browser.lon],
+                        [locations.ip.lat, locations.ip.lon]
+                    ],
+                    {
+                        color: '#f59e0b',
+                        weight: 3,
+                        opacity: 0.6,
+                        dashArray: '10, 10'
+                    }
+                ).addTo(map);
+            }
+        }
+        
+        function watchLocation() {
+            if (!detector) return;
+            
+            watchId = detector.watchLocation((error, location) => {
+                if (error) {
+                    console.error('Watch error:', error);
+                    return;
+                }
+                
+                // Обновляем позицию на карте
+                console.log('Location update:', location);
+                // Можно добавить трекинг пути здесь
+            });
+            
+            alert('Real-time tracking started. Move around to see updates.');
+        }
+        
+        function stopWatching() {
+            if (watchId !== null && detector) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+                alert('Tracking stopped.');
+            }
+        }
+        
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
