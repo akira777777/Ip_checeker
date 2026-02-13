@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./cache:/app/cache
+      - ./app.log:/app/app.log
+    environment:
+      - FLASK_DEBUG=false
+      - FLASK_HOST=0.0.0.0
+      - LOCAL_ONLY=false
+      - SECRET_KEY=development-key-change-in-prod
+    restart: always
+
+volumes:
+  cache:

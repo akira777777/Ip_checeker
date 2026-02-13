@@ -3,40 +3,35 @@
   "window.restoreFullscreen": true,
   "workbench.startupEditor": "none",
   "workbench.editor.restoreViewState": true,
-"workbench.editor.openPositioning": "first",
+  "workbench.editor.openPositioning": "first",
   "editor.columnSelection": false,
   "editor.wordWrap": "off",
-  
   // РАВНОЕ РАСПРЕДЕЛЕНИЕ ПРОСТРАНСТВА И ПОСТОЯННАЯ КОНФИГУРАЦИЯ
   "workbench.panel.defaultLocation": "bottom",
   "workbench.sideBar.location": "right",
   "workbench.statusBar.visible": true,
-  
   // ПОЛНАЯ БЛОКИРОВКА перемещения элементов С РАВНЫМИ ОТСТУПАМИ
   "workbench.layoutControl.enabled": false,
   "workbench.layoutControl.type": "menu",
   "workbench.view.experimental.allowMovingToNewContainer": false,
   "workbench.view.experimental.allowDragging": false,
-  
   // ПОЛНАЯ БЛОКИРОВКА - ТРИ ФИКСИРОВАННЫХ ОКНА С РАВНЫМ РАСПРЕДЕЛЕНИЕМ
   "workbench.editor.splitSizing": "distribute",
   "workbench.editor.equalSpacing": true,
   "workbench.editor.groupSpacing": 12,
   "workbench.editor.tabSpacing": 6,
   "workbench.editor.groupPadding": 8,
-  "workbench.editor.centeredLayoutAutoResize": false,
+  "workbench.editor.centeredLayoutAutoResize": true,
   "workbench.editor.showTabs": "multiple",
-  "workbench.editor.wrapTabs": false,
+  "workbench.editor.wrapTabs": true,
   "workbench.editor.tabSizing": "fixed",
   "workbench.editor.pinnedTabSizing": "normal",
   "workbench.editor.tabCloseButton": "right",
   "workbench.editor.tabActionLocation": "right",
-  
   // Grid layout with FIXED proportions и равными отступами
   "workbench.grid.insertionIndicator": false,
   "workbench.grid.resizeMode": "legacy",
   "workbench.grid.spacing": 12,
-  
   // Consistent padding and margins - РАВНЫЕ ОТСТУПЫ ВЕЗДЕ
   "workbench.list.padding": 4,
   "workbench.tree.indent": 8,
@@ -44,32 +39,27 @@
   "workbench.panel.spacing": 12,
   "workbench.panel.padding": 8,
   "workbench.activityBar.iconClickBehavior": "focus",
-  
   // Terminal and panel settings
   "terminal.integrated.tabs.enabled": true,
   "terminal.integrated.tabs.hideCondition": "never",
   "terminal.integrated.tabs.showActiveTerminal": "always",
-  
   // Window management
   "window.newWindowDimensions": "inherit",
   "window.openFoldersInNewWindow": "on",
   "window.openWithoutArgumentsInNewWindow": "on",
-  
   // Editor layout persistence - НИЧЕГО НЕ МЕНЯЕТСЯ
-  "workbench.editor.closeEmptyGroups": false,
+  "workbench.editor.closeEmptyGroups": true,
   "workbench.editor.revealIfOpen": true,
   "workbench.editor.enablePreview": true,
-  "workbench.editor.enablePreviewFromQuickOpen": false,
+  "workbench.editor.enablePreviewFromQuickOpen": true,
   "workbench.editor.limit.enabled": true,
   "workbench.editor.limit.perEditorGroup": true,
   "workbench.editor.limit.value": 1,
-  
   // Запрет редакторов в KimiCode окнах
   "workbench.editorAssociations": {
     "*.kimi": "default",
     "*.chat": "default"
   },
-  
   // KimiCode специфичные настройки - ПОЛНАЯ БЛОКИРОВКА ВСЕГО С РАВНЫМ РАСПРЕДЕЛЕНИЕМ
   "kimi-code.disableEditorPopups": true,
   "kimi-code.preventEditorWindows": true,
@@ -80,13 +70,18 @@
   "kimi-code.preventDynamicContent": true,
   "kimi-code.enforceEqualSpacing": true,
   "kimi-code.equalGroupDistribution": true,
-  "kimi-code.fixedGroupSizes": [0.333, 0.333, 0.334],
+  "kimi-code.fixedGroupSizes": [
+    0.333,
+    0.333,
+    0.334
+  ],
   "kimi-code.groupSpacing": 12,
   "kimi-code.tabSpacing": 6,
   "kimi-code.disableAutoResize": true,
   "kimi-code.lockEditorGroups": true,
   "kimi-code.preventNewPanels": true,
   "kimi-code.freezeLayout": true,
-"kimi-code.permanentConfiguration": true,
-"files.autoSave": "afterDelay"
+  "kimi-code.permanentConfiguration": true,
+  "files.autoSave": "afterDelay",
+  "workbench.editor.centeredLayoutFixedWidth": false
 }

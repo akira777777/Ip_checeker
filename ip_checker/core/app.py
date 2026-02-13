@@ -1,139 +1,205 @@
 """
-Flask Application Factory
-Optimized for performance with proper initialization patterns.
+IP Checker Pro - Application Factory
+====================================
+Flask application factory with optimized configuration.
 """
 
 import logging
 import os
-from typing import Optional
+import sys
+from pathlib import Path
 
-from flask import Flask
+from flask import Flask, jsonify, render_template
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from flask_talisman import Talisman
 
-from ip_checker.core.config import config
+try:
+    from flask_talisman import Talisman
+    TALISMAN_AVAILABLE = True
+except ImportError:
+    TALISMAN_AVAILABLE = False
+
+from ip_checker.core.config import get_config
+from ip_checker.api.routes import api
+
+logger = logging.getLogger(__name__)
 
 
-def setup_logging() -> logging.Logger:
-    """Configure optimized logging."""
-    logger = logging.getLogger('ip_checker')
+def setup_logging(config) -> logging.Logger:
+    """Configure application logging."""
+    # Create logs directory if needed
+    if config.LOG_FILE:
+        log_dir = Path(config.LOG_FILE).parent
+        log_dir.mkdir(parents=True, exist_ok=True)
     
-    if logger.handlers:
-        return logger
+    # Configure root logger
+    handlers = [logging.StreamHandler(sys.stdout)]
     
-    log_level = logging.DEBUG if os.environ.get('FLASK_DEBUG') == 'true' else logging.INFO
-    logger.setLevel(log_level)
+    if config.LOG_FILE:
+        handlers.append(logging.FileHandler(config.LOG_FILE))
     
-    # Console handler with optimized formatting
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(log_level)
-    
-    # File handler for persistence
-    file_handler = logging.FileHandler('app.log', mode='a')
-    file_handler.setLevel(logging.INFO)
-    
-    # Efficient formatter
-    formatter = logging.Formatter(
-        '%(asctime)s | %(levelname)-8s | %(name)s | %(message)s',
-        datefmt='%H:%M:%S'
+    logging.basicConfig(
+        level=getattr(logging, config.LOG_LEVEL.upper(), logging.INFO),
+        format=config.LOG_FORMAT,
+        handlers=handlers
     )
     
-    console_handler.setFormatter(formatter)
-    file_handler.setFormatter(formatter)
-    
-    logger.addHandler(console_handler)
-    logger.addHandler(file_handler)
-    
-    return logger
+    return logging.getLogger('ip_checker')
 
 
-def create_app(test_config: Optional[dict] = None) -> Flask:
-    """Application factory pattern for better testability and configuration."""
+def create_app(test_config: dict = None) -> Flask:
+    """
+    Application factory pattern.
     
-    app = Flask(__name__, 
-                static_folder='../../static',
-                template_folder='../../templates')
+    Args:
+        test_config: Optional test configuration override
+        
+    Returns:
+        Configured Flask application
+    """
+    # Get configuration
+    config = get_config()
     
-    # Load configuration
-    app.config.from_mapping(
-        SECRET_KEY=config.SECRET_KEY,
-        JSON_SORT_KEYS=config.JSON_SORT_KEYS,
-        VERSION=config.VERSION,
-    )
-    
+    # Override with test config if provided
     if test_config:
-        app.config.from_mapping(test_config)
+        for key, value in test_config.items():
+            setattr(config, key, value)
     
     # Setup logging
-    logger = setup_logging()
-    app.logger.handlers = logger.handlers
-    app.logger.setLevel(logger.level)
+    logger = setup_logging(config)
+    logger.info(f"Starting IP Checker Pro v{config.version}")
     
-    # Security headers with optimized CSP
-    Talisman(
-        app,
-        force_https=config.FORCE_HTTPS,
-        content_security_policy={
-            'default-src': "'self'",
-            'script-src': [
-                "'self'", "'unsafe-inline'",
-                "https://cdn.jsdelivr.net", "https://unpkg.com",
-                "https://cdnjs.cloudflare.com"
-            ],
-            'style-src': [
-                "'self'", "'unsafe-inline'",
-                "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"
-            ],
-            'font-src': [
-                "'self'", "https://fonts.gstatic.com",
-                "https://cdnjs.cloudflare.com"
-            ],
-            'img-src': [
-                "'self'", "data:",
-                "https://*.tile.openstreetmap.org", "https://unpkg.com"
-            ],
-            'connect-src': "'self'",
-        },
-        content_security_policy_nonce_in=['script-src']
+    # Create Flask app
+    app = Flask(
+        __name__,
+        template_folder='../../templates',
+        static_folder='../../static'
     )
     
-    # Rate limiting
-    Limiter(
+    # Configure app
+    app.config['SECRET_KEY'] = config.SECRET_KEY
+    app.config['JSON_SORT_KEYS'] = False
+    app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False  # Optimize JSON responses
+    
+    # Setup security headers with Talisman
+    if TALISMAN_AVAILABLE and not config.FLASK_DEBUG:
+        Talisman(
+            app,
+            force_https=config.FORCE_HTTPS,
+            content_security_policy=config.CSP,
+            content_security_policy_nonce_in=['script-src'],
+        )
+        logger.info("Security headers enabled (Talisman)")
+    
+    # Setup rate limiting
+    limiter = Limiter(
         app=app,
         key_func=get_remote_address,
-        default_limits=config.DEFAULT_RATE_LIMITS,
+        default_limits=config.get_rate_limits(),
         storage_uri=config.RATE_LIMIT_STORAGE,
-        strategy="fixed-window-elastic-expiry"
+        strategy='fixed-window',
     )
+    logger.info(f"Rate limiting enabled: {config.RATE_LIMIT_DEFAULT}")
     
     # Register blueprints
-    from ip_checker.api.routes import api_bp
-    app.register_blueprint(api_bp, url_prefix='/api')
+    app.register_blueprint(api)
     
     # Main routes
     @app.route('/')
     def index():
-        from flask import render_template
+        """Serve main application."""
         return render_template('index.html')
     
     # Error handlers
+    @app.errorhandler(400)
+    def bad_request(error):
+        return jsonify({
+            'success': False,
+            'error': 'Bad request',
+            'message': str(error.description)
+        }), 400
+    
+    @app.errorhandler(403)
+    def forbidden(error):
+        return jsonify({
+            'success': False,
+            'error': 'Forbidden',
+            'message': str(error.description)
+        }), 403
+    
     @app.errorhandler(404)
-    def not_found(e):
-        from flask import jsonify
-        return jsonify({"error": "Not found", "success": False}), 404
+    def not_found(error):
+        return jsonify({
+            'success': False,
+            'error': 'Not found',
+            'message': 'The requested resource was not found'
+        }), 404
     
     @app.errorhandler(429)
-    def ratelimit_handler(e):
-        from flask import jsonify
-        app.logger.warning(f"Rate limit exceeded")
-        return jsonify({"error": "Rate limit exceeded", "success": False}), 429
+    def rate_limit_handler(error):
+        return jsonify({
+            'success': False,
+            'error': 'Rate limit exceeded',
+            'message': str(error.description),
+            'retry_after': error.description
+        }), 429
     
     @app.errorhandler(500)
-    def server_error(e):
-        from flask import jsonify
-        app.logger.error(f"Server error: {e}")
-        return jsonify({"error": "Internal server error", "success": False}), 500
+    def internal_error(error):
+        logger.error(f"Internal server error: {error}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error',
+            'message': 'An unexpected error occurred'
+        }), 500
     
-    app.logger.info(f"IP Checker Pro v{config.VERSION} initialized")
+    # Request logging
+    @app.before_request
+    def log_request():
+        from flask import request, g
+        g.start_time = logging.time.time() if hasattr(logging, 'time') else __import__('time').time()
+    
+    @app.after_request
+    def log_response(response):
+        from flask import request, g
+        
+        duration = 0
+        if hasattr(g, 'start_time'):
+            duration = (__import__('time').time() - g.start_time) * 1000
+        
+        logger.debug(
+            f"{request.method} {request.path} - {response.status_code} "
+            f"({duration:.2f}ms)"
+        )
+        
+        # Add security headers
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+        response.headers['X-XSS-Protection'] = '1; mode=block'
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        
+        return response
+    
+    # CLI commands
+    @app.cli.command('clear-cache')
+    def clear_cache():
+        """Clear application cache."""
+        from ip_checker.services.cache import get_cache
+        cache = get_cache()
+        cache.clear()
+        print("Cache cleared successfully")
+    
+    @app.cli.command('status')
+    def show_status():
+        """Show application status."""
+        print(f"\n{'='*50}")
+        print(f"IP Checker Pro v{config.version}")
+        print(f"{'='*50}")
+        print(f"Debug Mode: {config.FLASK_DEBUG}")
+        print(f"Local Only: {config.LOCAL_ONLY}")
+        print(f"Rate Limit: {config.RATE_LIMIT_DEFAULT}")
+        print(f"Cache TTL: {config.CACHE_TTL}s")
+        print(f"{'='*50}\n")
+    
+    logger.info("Application initialized successfully")
     return app

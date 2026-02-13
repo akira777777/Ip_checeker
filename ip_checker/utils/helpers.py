@@ -1,172 +1,236 @@
 """
-Helper utilities with performance optimizations.
+IP Checker Pro - Utility Helpers
+================================
+Common utility functions and helpers.
 """
 
-import atexit
-import os
+import json
+import logging
 import platform
 import socket
-import tempfile
-from collections import Counter
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+import time
+from contextlib import contextmanager
+from dataclasses import dataclass
+from functools import wraps
+from typing import Any, Callable, Dict, Generator, List, Optional
 
-import psutil
+logger = logging.getLogger(__name__)
 
 
-class TempFileManager:
-    """Singleton manager for temporary file cleanup."""
+class Timer:
+    """Context manager for timing code blocks."""
     
-    _instance = None
-    _files: set = set()
+    def __init__(self, name: str = "Operation"):
+        self.name = name
+        self.start_time: float = 0
+        self.elapsed: float = 0
     
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            atexit.register(cls._cleanup_all)
-        return cls._instance
+    def __enter__(self) -> 'Timer':
+        self.start_time = time.perf_counter()
+        return self
     
-    def register(self, filepath: str) -> None:
-        """Register a temp file for cleanup."""
-        self._files.add(filepath)
+    def __exit__(self, *args) -> None:
+        self.elapsed = time.perf_counter() - self.start_time
+        logger.debug(f"{self.name} took {self.elapsed:.4f}s")
     
-    def unregister(self, filepath: str) -> None:
-        """Unregister a file (e.g., after successful download)."""
-        self._files.discard(filepath)
+    @property
+    def milliseconds(self) -> float:
+        return self.elapsed * 1000
+
+
+@dataclass
+class HealthStatus:
+    """System health status."""
+    status: str
+    version: str
+    timestamp: str
+    uptime: float
+    platform: str
+    hostname: str
+    checks: Dict[str, Any]
+
+
+class HealthChecker:
+    """System health checker."""
     
-    @classmethod
-    def _cleanup_all(cls):
-        """Cleanup all registered temp files on exit."""
-        for filepath in list(cls._files):
+    def __init__(self):
+        self.start_time = time.time()
+        self._checks: Dict[str, Callable[[], tuple[bool, str]]] = {}
+    
+    def register(self, name: str, check_func: Callable[[], tuple[bool, str]]) -> None:
+        """Register a health check."""
+        self._checks[name] = check_func
+    
+    def check(self) -> HealthStatus:
+        """Run all health checks."""
+        checks = {}
+        all_healthy = True
+        
+        for name, check_func in self._checks.items():
             try:
-                if os.path.exists(filepath):
-                    os.unlink(filepath)
-            except OSError:
-                pass
-        cls._files.clear()
+                healthy, message = check_func()
+                checks[name] = {'healthy': healthy, 'message': message}
+                if not healthy:
+                    all_healthy = False
+            except Exception as e:
+                checks[name] = {'healthy': False, 'message': str(e)}
+                all_healthy = False
+        
+        return HealthStatus(
+            status='healthy' if all_healthy else 'degraded',
+            version='2.1.0-optimized',
+            timestamp=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+            uptime=time.time() - self.start_time,
+            platform=platform.platform(),
+            hostname=socket.gethostname(),
+            checks=checks
+        )
 
 
-# Global temp file manager instance
-temp_manager = TempFileManager()
-
-
-def get_system_info() -> Dict[str, Any]:
-    """Get optimized system information."""
-    return {
-        "hostname": socket.gethostname(),
-        "platform": platform.platform(),
-        "timestamp": datetime.now().isoformat(),
-        "python_version": platform.python_version(),
+def json_response(data: Any, status: str = 'success', 
+                 message: str = None, code: int = 200) -> tuple[dict, int]:
+    """Create standardized JSON response."""
+    response = {
+        'success': status == 'success',
+        'status': status,
+        'data': data if status == 'success' else None,
+        'message': message,
+        'timestamp': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
     }
+    return response, code
 
 
-def get_network_interfaces() -> List[Dict[str, Any]]:
-    """Get network interfaces with error handling."""
-    interfaces = []
-    
-    try:
-        for iface_name, addrs in psutil.net_if_addrs().items():
-            iface = {"name": iface_name, "addresses": []}
-            
-            for addr in addrs:
-                if addr.family not in (socket.AF_INET, socket.AF_INET6):
-                    continue
-                
-                iface["addresses"].append({
-                    "family": "IPv4" if addr.family == socket.AF_INET else "IPv6",
-                    "address": addr.address,
-                    "netmask": addr.netmask,
-                    "broadcast": addr.broadcast,
-                })
-            
-            interfaces.append(iface)
-    except Exception:
-        pass
-    
-    return interfaces
+def error_response(message: str, code: int = 400, 
+                  details: dict = None) -> tuple[dict, int]:
+    """Create standardized error response."""
+    response = {
+        'success': False,
+        'status': 'error',
+        'message': message,
+        'details': details,
+        'timestamp': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+    }
+    return response, code
 
 
-def safe_process_name(pid: Optional[int]) -> str:
-    """Safely get process name by PID with caching."""
-    if not pid:
-        return "unknown"
-    
-    try:
-        return psutil.Process(pid).name()
-    except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-        return "unknown"
+def rate_limit_key(request) -> str:
+    """Generate rate limit key from request."""
+    forwarded = request.headers.get('X-Forwarded-For', '')
+    if forwarded:
+        return forwarded.split(',')[0].strip()
+    return request.remote_addr or 'unknown'
 
 
-def format_bytes(bytes_val: int) -> str:
-    """Format bytes to human readable string."""
-    if bytes_val < 1024:
-        return f"{bytes_val} B"
-    elif bytes_val < 1024 ** 2:
-        return f"{bytes_val / 1024:.1f} KB"
-    elif bytes_val < 1024 ** 3:
-        return f"{bytes_val / (1024 ** 2):.1f} MB"
-    else:
-        return f"{bytes_val / (1024 ** 3):.1f} GB"
+def format_bytes(size: float) -> str:
+    """Format bytes to human readable."""
+    for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+        if size < 1024:
+            return f"{size:.2f} {unit}"
+        size /= 1024
+    return f"{size:.2f} PB"
 
 
 def format_duration(seconds: float) -> str:
-    """Format duration in seconds to human readable string."""
-    if seconds < 1:
-        return f"{seconds * 1000:.0f}ms"
-    elif seconds < 60:
+    """Format seconds to human readable."""
+    if seconds < 60:
         return f"{seconds:.1f}s"
     elif seconds < 3600:
-        minutes = int(seconds / 60)
-        secs = int(seconds % 60)
-        return f"{minutes}m {secs}s"
+        return f"{seconds/60:.1f}m"
+    elif seconds < 86400:
+        return f"{seconds/3600:.1f}h"
     else:
-        hours = int(seconds / 3600)
-        minutes = int((seconds % 3600) / 60)
-        return f"{hours}h {minutes}m"
+        return f"{seconds/86400:.1f}d"
 
 
-def get_top_items(items: List[str], n: int = 5) -> List[tuple]:
-    """Get top N items with counts using Counter."""
-    counter = Counter(items)
-    return counter.most_common(n)
+class RateLimiter:
+    """Simple in-memory rate limiter."""
+    
+    def __init__(self):
+        self._requests: Dict[str, List[float]] = {}
+        self._lock = threading.Lock()
+    
+    def is_allowed(self, key: str, max_requests: int, window: int) -> bool:
+        """Check if request is allowed."""
+        with self._lock:
+            now = time.time()
+            
+            # Get or create request list
+            requests = self._requests.get(key, [])
+            
+            # Remove old requests
+            requests = [r for r in requests if now - r < window]
+            
+            # Check limit
+            if len(requests) >= max_requests:
+                self._requests[key] = requests
+                return False
+            
+            # Add current request
+            requests.append(now)
+            self._requests[key] = requests
+            return True
+    
+    def get_remaining(self, key: str, max_requests: int, window: int) -> int:
+        """Get remaining requests in window."""
+        with self._lock:
+            now = time.time()
+            requests = self._requests.get(key, [])
+            requests = [r for r in requests if now - r < window]
+            return max(0, max_requests - len(requests))
 
 
-class SimpleCache:
-    """Simple TTL cache implementation."""
+# Import threading for RateLimiter
+import threading
+
+
+def retry(max_attempts: int = 3, delay: float = 1.0, 
+         backoff: float = 2.0, exceptions: tuple = (Exception,)):
+    """Retry decorator with exponential backoff."""
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            attempt = 1
+            current_delay = delay
+            
+            while attempt <= max_attempts:
+                try:
+                    return func(*args, **kwargs)
+                except exceptions as e:
+                    if attempt == max_attempts:
+                        raise
+                    
+                    logger.warning(
+                        f"Attempt {attempt}/{max_attempts} failed: {e}. "
+                        f"Retrying in {current_delay}s..."
+                    )
+                    time.sleep(current_delay)
+                    current_delay *= backoff
+                    attempt += 1
+            
+            return None  # Should never reach here
+        return wrapper
+    return decorator
+
+
+@contextmanager
+def suppress_exceptions(*exceptions, default=None, log_msg: str = None):
+    """Context manager to suppress exceptions."""
+    try:
+        yield
+    except exceptions as e:
+        if log_msg:
+            logger.warning(f"{log_msg}: {e}")
+        return default
+
+
+def deep_merge(base: dict, override: dict) -> dict:
+    """Deep merge two dictionaries."""
+    result = base.copy()
     
-    def __init__(self, default_ttl: int = 3600):
-        self._cache: Dict[str, tuple] = {}
-        self._default_ttl = default_ttl
+    for key, value in override.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            result[key] = deep_merge(result[key], value)
+        else:
+            result[key] = value
     
-    def get(self, key: str) -> Optional[Any]:
-        """Get value from cache if not expired."""
-        if key in self._cache:
-            expires_at, value = self._cache[key]
-            if datetime.now().timestamp() < expires_at:
-                return value
-            else:
-                del self._cache[key]
-        return None
-    
-    def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
-        """Set value in cache with TTL."""
-        ttl = ttl or self._default_ttl
-        expires_at = datetime.now().timestamp() + ttl
-        self._cache[key] = (expires_at, value)
-    
-    def delete(self, key: str) -> None:
-        """Delete key from cache."""
-        self._cache.pop(key, None)
-    
-    def clear(self) -> None:
-        """Clear all cached items."""
-        self._cache.clear()
-    
-    def keys(self) -> List[str]:
-        """Get all valid keys."""
-        now = datetime.now().timestamp()
-        return [k for k, (expires_at, _) in self._cache.items() if now < expires_at]
-    
-    def __len__(self) -> int:
-        """Return number of cached items."""
-        return len(self.keys())
+    return result
